@@ -1,103 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/root"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="#0F1012">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="14dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ONLYWRITE"
-            android:textColor="#8F949C"
-            android:textSize="12sp"
-            android:letterSpacing="0.3" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="14dp">
 
-        <TextView
-            android:layout_width="0dp"
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ONLYWRITE"
+                android:textColor="#8F949C"
+                android:textSize="11sp"
+                android:letterSpacing="0.32" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/btnFont"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="·字"
+                android:textColor="#41464D"
+                android:textSize="11sp"
+                android:letterSpacing="0.2"
+                android:padding="6dp" />
+
+            <TextView
+                android:id="@+id/tglTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="·时间"
+                android:textColor="#41464D"
+                android:textSize="11sp"
+                android:letterSpacing="0.2"
+                android:padding="6dp" />
+
+            <TextView
+                android:id="@+id/count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 字"
+                android:textColor="#6D727A"
+                android:textSize="10sp"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:background="#1B1E23" />
 
-        <TextView
-            android:id="@+id/tglTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="·时间"
-            android:textColor="#4D525A"
-            android:textSize="11sp"
-            android:padding="6dp" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
 
-        <TextView
-            android:id="@+id/count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0 字"
-            android:textColor="#6D727A"
-            android:textSize="11sp"
-            android:layout_marginStart="8dp" />
-    </LinearLayout>
+             <com.greed.onlywrite.StoneEditText
+                android:id="@+id/editor"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:gravity="top|start"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="18dp"
+                android:paddingBottom="42dp"
+                android:textColor="#E9E6E1"
+                android:textColorHint="#3F444B"
+                android:textSize="18sp"
+                android:lineSpacingMultiplier="2.0"
+                android:inputType="textMultiLine|textCapSentences"
+                android:importantForAutofill="no"
+                android:scrollbars="none"
+                android:hint="写吧。写下第一个字，它就留在石头上了。" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#1B1E23" />
+            <TextView
+                android:id="@+id/btnStrike"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="划掉"
+                android:textColor="#8A6A6A"
+                android:textSize="11sp"
+                android:letterSpacing="0.18"
+                android:padding="6dp"
+                android:background="#CC0F1012"
+                android:visibility="gone" />
+        </FrameLayout>
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1B1E23" />
 
-        <com.greed.onlywrite.StoneEditText
-            android:id="@+id/editor"
+        <LinearLayout
+            android:id="@+id/bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@null"
-            android:gravity="top|start"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="40dp"
-            android:textColor="#E9E6E1"
-            android:textColorHint="#3F444B"
-            android:textSize="18sp"
-            android:lineSpacingMultiplier="1.9"
-            android:inputType="textMultiLine|textCapSentences"
-            android:importantForAutofill="no"
-            android:hint="写吧。写下第一个字，它就留在石头上了。" />
-    </ScrollView>
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#1B1E23" />
-
-    <LinearLayout
-        android:id="@+id/bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
-
-        <TextView
-            android:id="@+id/btnRec"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="·拾音"
-            android:textColor="#4D525A"
-            android:textSize="12sp"
-            android:padding="8dp" />
+            <TextView
+                android:id="@+id/btnRec"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="·拾音"
+                android:textColor="#4D525A"
+                android:textSize="11sp"
+                android:letterSpacing="0.28"
+                android:padding="8dp" />
+        </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</FrameLayout>

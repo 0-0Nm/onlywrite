@@ -8,9 +8,8 @@ import android.view.KeyEvent
 import androidx.appcompat.widget.AppCompatEditText
 
 /**
- * 石刻输入框。
- * 只允许"插入"。任何让已有文字消失的动作（退格、删除、剪切、撤销、覆盖替换）
- * 都在 InputFilter 层被丢弃 —— 不是弹提示，是根本不进缓冲区。
+ * 石刻输入框：只允许插入。
+ * 退格 / 删除 / 剪切 / 撤销 / 选中覆盖 —— 全部在 InputFilter 层被丢弃。
  */
 class StoneEditText @JvmOverloads constructor(
     context: Context,
@@ -18,12 +17,18 @@ class StoneEditText @JvmOverloads constructor(
     defStyle: Int = android.R.attr.editTextStyle
 ) : AppCompatEditText(context, attrs, defStyle) {
 
-    /** 由 MainActivity 提供：返回 true 表示这次变更已被执行业务处理，输入框照常接受 */
-    var onCarve: ((String) -> Unit)? = null
     var onRejected: ((String) -> Unit)? = null
+    var onCarve: ((String) -> Unit)? = null
+    var onCaretMoved: (() -> Unit)? = null
 
     init {
         filters = arrayOf(NoDeleteFilter())
+        setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom)
+    }
+
+    override fun onSelectionChanged(selStart: Int, selEnd: Int) {
+        super.onSelectionChanged(selStart, selEnd)
+        onCaretMoved?.invoke()
     }
 
     private inner class NoDeleteFilter : InputFilter {
@@ -32,14 +37,16 @@ class StoneEditText @JvmOverloads constructor(
             dest: Spanned, dstart: Int, dend: Int
         ): CharSequence? {
             val removed = dend - dstart
-            val added = end - start
             if (removed > 0) {
-                // 删除 / 剪切 / 覆盖替换 —— 一律不许
-                if (added == 0) onRejected?.invoke("刻下的字不能擦。")
-                else onRejected?.invoke("不能用输入覆盖已刻的字。先「划掉」，再刻新的。")
+                onRejected?.invoke(
+                    if (end - start == 0) "刻下的字不能擦。"
+                    else "不能用输入覆盖已刻的字。先「划掉」，再刻新的。"
+                )
                 return ""
             }
-            if (added > 0) onCarve?.invoke(source.subSequence(start, end).toString())
+            if (end > start) {
+                onCarve?.invoke(source.subSequence(start, end).toString())
+            }
             return null
         }
     }
