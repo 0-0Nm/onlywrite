@@ -5,6 +5,15 @@ plugins {
 
 android {
     namespace = "com.greed.onlywrite"
+
+    signingConfigs {
+        create("fixed") {
+            storeFile = file("../keystore/ow.jks")
+            storePassword = "ow123456"
+            keyAlias = "ow"
+            keyPassword = "ow123456"
+        }
+    }
     compileSdk = 34
 
     defaultConfig {
@@ -16,9 +25,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("fixed")
+        }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("fixed")
         }
     }
     compileOptions {
