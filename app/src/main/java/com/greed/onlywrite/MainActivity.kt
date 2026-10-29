@@ -81,16 +81,16 @@ class MainActivity : AppCompatActivity() {
     private fun onTyped(ins: String) {
         if (suppress) return
         val pos = editor.selectionStart - ins.length
-        addRev("carve", if (pos < 0) editor.text.length - ins.length else pos, ins, 0, 0)
+        addRev("carve", if (pos < 0) editor.text!!.length - ins.length else pos, ins, 0, 0)
 
         if (ins.contains('\n')) {
             suppress = true
             val s = Clock.stamp()
             val block = s + "\n\u3000\u3000"
-            val at = editor.text.length
-            editor.text.append(block)
+            val at = editor.text!!.length
+            editor.text!!.append(block)
             addRev("stamp", 0, s, 0, 0)
-            editor.setSelection(editor.text.length)
+            editor.setSelection(editor.text!!.length)
             stampChars += s.length
             suppress = false
         }
@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         val a = editor.selectionStart
         val b = editor.selectionEnd
         if (a < 0 || b <= a) { toast("先选中要划掉的文字。"); return }
-        val sp = editor.text as Spannable
+        val sp = editor.text!! as Spannable
         sp.setSpan(StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         addRev("strike", 0, "", a, b)
         updateCount()
@@ -119,7 +119,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCount() {
-        val t = editor.text
+        val t = editor.text!!
         var n = 0
         for (i in 0 until t.length) {
             val c = t[i]
