@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun paintToggle() {
-        tglTime.textColor = if (showStamps) 0xFF8A8271.toInt() else 0xFF41464D.toInt()
+        tglTime.setTextColor(if (showStamps) 0xFF8A8271.toInt() else 0xFF41464D.toInt())
     }
 
     /* ---------------- 渲染 ---------------- */
