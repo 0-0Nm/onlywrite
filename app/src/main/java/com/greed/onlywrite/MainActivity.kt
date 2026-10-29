@@ -90,9 +90,18 @@ class MainActivity : AppCompatActivity() {
     /* ---------------- 渲染 ---------------- */
 
     private fun loadAll() {
-        revs.clear()
-        revs.addAll(store.all(doc))
-        rebuild(keepCaret = false)
+        try {
+            revs.clear()
+            revs.addAll(store.all(doc))
+            rebuild(keepCaret = false)
+        } catch (e: Throwable) {
+            // 宁可空着起来，也不要闪退
+            revs.clear()
+            suppress = true
+            editor.setText("")
+            suppress = false
+            t("读取档案出错：" + (e.message ?: e.javaClass.simpleName))
+        }
     }
 
     private fun rebuild(keepCaret: Boolean) {
@@ -105,7 +114,7 @@ class MainActivity : AppCompatActivity() {
         for (r in revs) {
             when (r.op) {
                 "carve" -> {
-                    val p = minOf(r.pos, canon.length)
+                    val p = r.pos.coerceIn(0, canon.length)
                     canon.insert(p, r.payload)
                 }
                 "stamp" -> {
@@ -161,7 +170,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onTyped(ins: String) {
         val pos = (editor.selectionStart - ins.length).coerceAtLeast(0)
-        addRev("carve", dispToCanon(pos), ins, 0, 0)
+        addRev("carve", dispToCanon(pos).coerceAtLeast(0), ins, 0, 0)
         if (ins.contains('\n')) {
             suppress = true
             val s = Clock.stamp()
