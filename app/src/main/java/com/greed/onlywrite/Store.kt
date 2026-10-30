@@ -65,7 +65,7 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 6) {
             "CREATE TRIGGER no_delete BEFORE DELETE ON revisions " +
                 "BEGIN SELECT RAISE(ABORT,'append-only'); END"
         )
-        db.execSQL("CREATE TABLE archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER)")
+        db.execSQL("CREATE TABLE archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER, strikes TEXT, chain TEXT)")
         db.execSQL(
             "CREATE TRIGGER arch_no_update BEFORE UPDATE ON archives " +
                 "BEGIN SELECT RAISE(ABORT,'append-only'); END"
