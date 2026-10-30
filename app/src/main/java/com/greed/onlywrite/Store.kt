@@ -76,13 +76,27 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 6) {
         )
     }
 
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        // 历史库里可能因早期异常被吞导致缺列且版本已推进，这里每次打开都自检一次
+        runCatching {
+            db.execSQL("CREATE TABLE IF NOT EXISTS archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER, strikes TEXT, chain TEXT)")
+            addColumnIfMissing(db, "archives", "strikes", "TEXT")
+            addColumnIfMissing(db, "archives", "chain", "TEXT")
+        }
+    }
+
+    private fun addColumnIfMissing(db: SQLiteDatabase, table: String, col: String, type: String) {
+        var exists = false
+        db.rawQuery("PRAGMA table_info($table)", null).use { c ->
+            while (c.moveToNext()) if (c.getString(1) == col) exists = true
+        }
+        if (!exists) db.execSQL("ALTER TABLE $table ADD COLUMN $col $type")
+    }
+
     override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) {
-        if (old < 6) {
-            runCatching { db.execSQL("ALTER TABLE archives ADD COLUMN chain TEXT") }
-        }
-        if (old < 5) {
-            runCatching { db.execSQL("ALTER TABLE archives ADD COLUMN strikes TEXT") }
-        }
+        if (old < 6) addColumnIfMissing(db, "archives", "chain", "TEXT")
+        if (old < 5) addColumnIfMissing(db, "archives", "strikes", "TEXT")
         if (old < 4) {
             db.execSQL("CREATE TABLE IF NOT EXISTS audio(name TEXT PRIMARY KEY, ts INTEGER, path TEXT, size INTEGER, doc TEXT)")
         }
