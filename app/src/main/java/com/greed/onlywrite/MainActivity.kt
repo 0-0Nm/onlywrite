@@ -139,7 +139,7 @@ class MainActivity : AppCompatActivity() {
                 // 与网页版一致：小一号、暗灰、等宽
                 sp.setSpan(RelativeSizeSpan(0.68f), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sp.setSpan(ForegroundColorSpan(0xFF5F5C52.toInt()), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                val target = (editor.textSize * editor.lineSpacingMultiplier * 0.62f).toInt()
+                val target = (editor.textSize * 0.60f).toInt()
                 sp.setSpan(StampLineSpan(target), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 val tf = appTf
                 if (tf != null) sp.setSpan(StampFontSpan(tf), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)

@@ -40,7 +40,7 @@ class RedStrikeSpan(
         p.color = lineColor
         p.strokeWidth = lineWidthPx
         p.style = Paint.Style.FILL
-        val midY = y - (paint.ascent() + paint.descent()) / 2f
+        val midY = y + (paint.ascent() + paint.descent()) / 2f
         if (measured > 0f) canvas.drawRect(x, midY - lineWidthPx / 2f, x + measured, midY + lineWidthPx / 2f, p)
     }
 }
