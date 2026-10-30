@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun toRecs(): List<Rec> = revs.map { Rec(it.seq, it.op, it.pos, it.payload, it.s, it.e) }
+    private fun toRecs(): List<Rec> = revs.map { Rec(it.seq, it.op, it.pos, it.payload, it.start, it.end) }
 
     private fun rebuild(keepCaret: Boolean) {
         val oldCaret = editor.selectionStart
