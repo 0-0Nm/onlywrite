@@ -1,10 +1,16 @@
 package com.greed.onlywrite
 
 import android.graphics.Typeface
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
+import androidx.core.content.FileProvider
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 
@@ -61,6 +67,25 @@ class AudioPlayerActivity : AppCompatActivity() {
             playing = true
             play.text = "▪ 暂停"
             state.text = "播放中"
+        }
+
+        pPath.setOnClickListener {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("path", path))
+            Toast.makeText(this, "路径已复制", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<TextView>(R.id.pOpen).setOnClickListener {
+            val f = File(path)
+            if (!f.exists()) { Toast.makeText(this, "文件不存在", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+            runCatching {
+                val uri = FileProvider.getUriForFile(this, "com.greed.onlywrite.fileprovider", f)
+                val i = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "audio/mp4")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(i)
+            }.onFailure { Toast.makeText(this, "没有可打开它的应用", Toast.LENGTH_SHORT).show() }
         }
 
         findViewById<TextView>(R.id.pBack).setOnClickListener { finish() }

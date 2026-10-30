@@ -69,10 +69,21 @@
         android:paddingBottom="2dp">
 
         <TextView
+            android:id="@+id/pOpen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▪打开"
+            android:textColor="#8A8271"
+            android:textSize="11sp"
+            android:letterSpacing="0.28"
+            android:padding="8dp" />
+
+        <TextView
             android:id="@+id/pBack"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="▪返回"
+            android:layout_marginStart="18dp"
             android:textColor="#4D525A"
             android:textSize="11sp"
             android:letterSpacing="0.28"

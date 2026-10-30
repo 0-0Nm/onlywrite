@@ -32,5 +32,14 @@
             android:name=".AudioPlayerActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.greed.onlywrite.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
