@@ -95,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         bindSidebar()
 
         paintToggle()
+        if (BuildConfig.DELTA) Hint.idle(this, "石刻模式 · 底栏提示\n一，字一上屏就刻死。\n二，回车出两行：时间行 + 写字行。")
         applyFont()
         loadAll()
     }

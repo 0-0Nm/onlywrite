@@ -140,6 +140,34 @@
                 android:letterSpacing="0.28"
                 android:padding="8dp" />
         </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1B1E23" />
+
+        <ScrollView
+            android:id="@+id/statusWrap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="120dp"
+            android:background="#141619"
+            android:visibility="gone"
+            android:scrollbars="none">
+
+            <TextView
+                android:id="@+id/statusLine"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="12dp"
+                android:textColor="#6B7078"
+                android:textSize="11sp"
+                android:lineSpacingExtra="3dp"
+                android:text="" />
+        </ScrollView>
     </LinearLayout>
     <FrameLayout
         android:id="@+id/sbWrap"
