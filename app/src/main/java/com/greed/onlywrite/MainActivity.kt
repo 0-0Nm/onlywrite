@@ -438,7 +438,7 @@ class MainActivity : AppCompatActivity() {
             }
             val meta = "{\"name\":\"" + name + "\",\"chars\":" +
                 body.replace(Regex("\\s"), "").length +
-                ",\"strikes\":\"" + strikes + "\"}"
+                ",\"strikes\":" + strikesJson(body, strikes) + "}"
             val js = root.findFile(safe + ".json") ?: root.createFile("application/json", safe + ".json")
             js?.let {
                 contentResolver.openOutputStream(it.uri)?.use { o -> o.write(meta.toByteArray(Charsets.UTF_8)) }
@@ -473,26 +473,46 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** 导出用：把已经划掉的区间用 ~~ 包住，让人一眼看出哪些字废了 */
+    /** 导出用：每段划线用 ⟦n⟧ … ⟦n⟧ 包住，n 是本篇内的序号 */
     private fun marked(body: String, strikes: String): String {
         if (strikes.isEmpty()) return body
         val ranges = strikes.split(";").mapNotNull {
             val p = it.split(":")
             if (p.size == 2) p[0].toIntOrNull()?.let { a -> p[1].toIntOrNull()?.let { b -> a to b } } else null
-        }.sortedBy { it.first }
+        }.filter { it.second > it.first }.sortedBy { it.first }
+        if (ranges.isEmpty()) return body
+
         val sb = StringBuilder()
         var i = 0
+        var idx = 0
         while (i < body.length) {
-            val hit = ranges.firstOrNull { it.first == i }
-            if (hit != null) {
-                val b = hit.second.coerceAtMost(body.length)
-                sb.append("~~").append(body, i, b).append("~~")
+            while (idx < ranges.size && ranges[idx].first < i) idx++
+            val r = if (idx < ranges.size) ranges[idx] else null
+            if (r != null && r.first == i) {
+                val b = r.second.coerceAtMost(body.length)
+                val tag = "\u27e6" + (idx + 1) + "\u27e7"
+                sb.append(tag).append(body, r.first, b).append(tag)
                 i = b
+                idx++
             } else {
-                sb.append(body[i]); i++
+                sb.append(body[i])
+                i++
             }
         }
         return sb.toString()
+    }
+
+    /** 结构化输出：每段划线的起止与原文，给机器读 */
+    private fun strikesJson(body: String, strikes: String): String {
+        if (strikes.isEmpty()) return "[]"
+        val items = strikes.split(";").mapNotNull {
+            val p = it.split(":")
+            if (p.size == 2) p[0].toIntOrNull()?.let { a -> p[1].toIntOrNull()?.let { b -> a to b } } else null
+        }.filter { it.second > it.first && it.first < body.length }
+        return items.joinToString(",", "[", "]") { (a, b) ->
+            val seg = body.substring(a, b.coerceAtMost(body.length))
+            "{\"s\":" + a + ",\"e\":" + b + ",\"text\":\"" + seg.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}"
+        }
     }
 
     private fun openSidebar() {
