@@ -34,6 +34,7 @@ class ArchiveViewActivity : AppCompatActivity() {
     private lateinit var count: TextView
     private var name: String = ""
     private var plain: String = ""
+    private var strikes: String = ""
     private var appTf: Typeface? = null
     private var popup: PopupWindow? = null
 
@@ -50,6 +51,7 @@ class ArchiveViewActivity : AppCompatActivity() {
         val a = store.allArchives().firstOrNull { it.name == name }
         if (a == null) { finish(); return }
         plain = a.plain
+        strikes = a.strikes
 
         title.text = name
         count.text = plain.replace(Regex("\\s"), "").length.toString() + " 字"
@@ -87,6 +89,15 @@ class ArchiveViewActivity : AppCompatActivity() {
                 sp.setSpan(RelativeSizeSpan(0.62f), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sp.setSpan(ForegroundColorSpan(0xFF5F5C52.toInt()), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
+        }
+
+        for (r in parseStrikes(strikes)) {
+            val a2 = r.first.coerceIn(0, sp.length)
+            val b2 = r.second.coerceIn(0, sp.length)
+            if (b2 > a2) sp.setSpan(
+                RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dpF(1.4f)),
+                a2, b2, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
         }
 
         for (n in store.notesOf(name)) {
@@ -263,6 +274,16 @@ class ArchiveViewActivity : AppCompatActivity() {
         )
         dlg.show()
     }
+
+    private fun parseStrikes(s: String): List<Pair<Int, Int>> {
+        if (s.isEmpty()) return emptyList()
+        return s.split(";").mapNotNull {
+            val p = it.split(":")
+            if (p.size == 2) p[0].toIntOrNull()?.let { x -> p[1].toIntOrNull()?.let { y -> x to y } } else null
+        }
+    }
+
+    private fun dpF(v: Float) = v * resources.displayMetrics.density
 
     private fun fmt(ts: Long): String =
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(Date(ts))

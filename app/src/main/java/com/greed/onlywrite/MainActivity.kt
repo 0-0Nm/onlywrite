@@ -425,7 +425,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun writeOut(name: String, body: String) {
+    private fun writeOut(name: String, body: String, strikes: String) {
         val s = getSharedPreferences("ow", MODE_PRIVATE).getString("export_tree", null) ?: return
         runCatching {
             val root = androidx.documentfile.provider.DocumentFile.fromTreeUri(this, android.net.Uri.parse(s)) ?: return
@@ -433,10 +433,12 @@ class MainActivity : AppCompatActivity() {
             val txt = root.findFile(safe + ".txt") ?: root.createFile("text/plain", safe + ".txt")
             txt?.let {
                 contentResolver.openOutputStream(it.uri)?.use { o ->
-                    o.write((name + "\n\n" + body).toByteArray(Charsets.UTF_8))
+                    o.write((name + "\n\n" + marked(body, strikes)).toByteArray(Charsets.UTF_8))
                 }
             }
-            val meta = "{\"name\":\"" + name + "\",\"chars\":" + body.replace(Regex("\\s"), "").length + "}"
+            val meta = "{\"name\":\"" + name + "\",\"chars\":" +
+                body.replace(Regex("\\s"), "").length +
+                ",\"strikes\":\"" + strikes + "\"}"
             val js = root.findFile(safe + ".json") ?: root.createFile("application/json", safe + ".json")
             js?.let {
                 contentResolver.openOutputStream(it.uri)?.use { o -> o.write(meta.toByteArray(Charsets.UTF_8)) }
@@ -460,7 +462,7 @@ class MainActivity : AppCompatActivity() {
                 val f = root.findFile(fn) ?: root.createFile("text/plain", fn)
                 if (f != null) {
                     contentResolver.openOutputStream(f.uri)?.use {
-                        it.write((a.name + "\n\n" + a.plain).toByteArray(Charsets.UTF_8))
+                        it.write((a.name + "\n\n" + marked(a.plain, a.strikes)).toByteArray(Charsets.UTF_8))
                     }
                     n++
                 }
@@ -469,6 +471,28 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Throwable) {
             t("导出失败：" + (e.message ?: "未知"))
         }
+    }
+
+    /** 导出用：把已经划掉的区间用 ~~ 包住，让人一眼看出哪些字废了 */
+    private fun marked(body: String, strikes: String): String {
+        if (strikes.isEmpty()) return body
+        val ranges = strikes.split(";").mapNotNull {
+            val p = it.split(":")
+            if (p.size == 2) p[0].toIntOrNull()?.let { a -> p[1].toIntOrNull()?.let { b -> a to b } } else null
+        }.sortedBy { it.first }
+        val sb = StringBuilder()
+        var i = 0
+        while (i < body.length) {
+            val hit = ranges.firstOrNull { it.first == i }
+            if (hit != null) {
+                val b = hit.second.coerceAtMost(body.length)
+                sb.append("~~").append(body, i, b).append("~~")
+                i = b
+            } else {
+                sb.append(body[i]); i++
+            }
+        }
+        return sb.toString()
     }
 
     private fun openSidebar() {
@@ -565,11 +589,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun archiveAndNew() {
-        val txt = editor.text?.toString() ?: ""
-        if (txt.trim().isEmpty()) { t("还没有字，没什么可归档的。"); return }
+        val rendered = DocText.render(toRecs())
+        if (rendered.text.trim().isEmpty()) { t("还没有字，没什么可归档的。"); return }
+        val strikes = rendered.strikes.joinToString(";") { "" + it.first + ":" + (it.last + 1) }
         val name = Clock.stamp()
-        store.putArchive(name, System.currentTimeMillis(), txt, revs.size)
-        writeOut(name, txt)
+        store.putArchive(name, System.currentTimeMillis(), rendered.text, revs.size, strikes)
+        writeOut(name, rendered.text, strikes)
         doc = "doc-" + System.currentTimeMillis()
         getSharedPreferences("ow", MODE_PRIVATE).edit().putString("cur_doc", doc).apply()
         revs.clear()

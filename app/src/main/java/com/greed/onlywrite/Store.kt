@@ -13,7 +13,7 @@ data class Note(val s: Int, val e: Int, val body: String, val ts: Long)
 
 data class AudioRec(val name: String, val ts: Long, val path: String, val size: Long)
 
-data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int)
+data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int, val strikes: String = "")
 
 data class Rev(
     val seq: Int,
@@ -45,7 +45,7 @@ object Clock {
     }
 }
 
-class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 4) {
+class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 5) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -77,6 +77,9 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 4) {
     }
 
     override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) {
+        if (old < 5) {
+            runCatching { db.execSQL("ALTER TABLE archives ADD COLUMN strikes TEXT") }
+        }
         if (old < 4) {
             db.execSQL("CREATE TABLE IF NOT EXISTS audio(name TEXT PRIMARY KEY, ts INTEGER, path TEXT, size INTEGER, doc TEXT)")
         }
@@ -108,20 +111,20 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 4) {
         return out
     }
 
-    fun putArchive(name: String, ts: Long, plain: String, strokes: Int) {
+    fun putArchive(name: String, ts: Long, plain: String, strokes: Int, strikes: String = "") {
         writableDatabase.execSQL(
-            "INSERT OR REPLACE INTO archives(name,ts,plain,strokes) VALUES(?,?,?,?)",
-            arrayOf(name, ts, plain, strokes)
+            "INSERT OR REPLACE INTO archives(name,ts,plain,strokes,strikes) VALUES(?,?,?,?,?)",
+            arrayOf(name, ts, plain, strokes, strikes)
         )
     }
 
     fun allArchives(): List<Archive> {
         val out = ArrayList<Archive>()
         readableDatabase.rawQuery(
-            "SELECT name,ts,plain,strokes FROM archives ORDER BY ts ASC", null
+            "SELECT name,ts,plain,strokes,strikes FROM archives ORDER BY ts ASC", null
         ).use { c ->
             while (c.moveToNext()) {
-                out.add(Archive(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getInt(3)))
+                out.add(Archive(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getInt(3), c.getString(4) ?: ""))
             }
         }
         return out
