@@ -34,6 +34,16 @@ class ExportTest {
         assertEquals("abc", Export.marked("abc", "2:2"))
     }
 
+    @Test fun duplicateRangesCollapseToOneTag() {
+        val out = Export.marked("abc", "1:3;1:3")
+        assertEquals("a\u27e61\u27e7bc\u27e61\u27e7", out)
+    }
+
+    @Test fun duplicateRangesNotDuplicatedInJson() {
+        val j = Export.strikesJson("abc", "1:3;1:3")
+        assertEquals(1, j.split("\"s\":").size - 1)
+    }
+
     @Test fun badEncodingIgnored() {
         assertEquals("abc", Export.marked("abc", "x:y;1"))
     }

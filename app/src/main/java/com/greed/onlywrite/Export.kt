@@ -14,7 +14,7 @@ object Export {
         return strikes.split(";").mapNotNull {
             val p = it.split(":")
             if (p.size == 2) p[0].toIntOrNull()?.let { a -> p[1].toIntOrNull()?.let { b -> a to b } } else null
-        }.filter { it.second > it.first }.sortedBy { it.first }
+        }.filter { it.second > it.first }.sortedBy { it.first }.distinct()
     }
 
     /** 每段划线用 ⟦n⟧ … ⟦n⟧ 包住 */
