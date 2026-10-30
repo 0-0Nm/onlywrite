@@ -105,9 +105,9 @@ class ArchiveViewActivity : AppCompatActivity() {
         val pad = (16 * resources.displayMetrics.density).toInt()
         val box = EditText(this).apply {
             hint = "写注记…"
-            setTextColor(0xFFE9E6E1)
-            setHintTextColor(0xFF4A4F57)
-            setBackgroundColor(0x00000000)
+            setTextColor(0xFFE9E6E1.toInt())
+            setHintTextColor(0xFF4A4F57.toInt())
+            setBackgroundColor(0x00000000.toInt())
             setPadding(pad, pad, pad, pad)
         }
         val wrap = FrameLayout(this).apply { addView(box) }
