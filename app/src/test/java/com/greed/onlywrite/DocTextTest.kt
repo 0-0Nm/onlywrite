@@ -38,7 +38,7 @@ class DocTextTest {
         val r = DocText.render(listOf(carve(1, 0, "a"), stamp(2, "T")))
         assertEquals("a\nT\n", r.text)
         assertEquals(1, r.stamps.size)
-        assertEquals("T", r.text.substring(r.stamps[0].first, r.stamps[0].last))
+        assertEquals("T", r.text.substring(r.stamps[0].first, r.stamps[0].last + 1))
     }
 
     @Test

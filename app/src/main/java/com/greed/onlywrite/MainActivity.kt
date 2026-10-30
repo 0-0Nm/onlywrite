@@ -123,13 +123,13 @@ class MainActivity : AppCompatActivity() {
         val sp = android.text.SpannableString(rendered.text)
         if (!showStamps) {
             for (r in rendered.stamps) {
-                if (r.first >= 0 && r.last <= sp.length)
-                    sp.setSpan(HiddenStampSpan(), r.first, r.last, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                if (r.first >= 0 && r.last + 1 <= sp.length)
+                    sp.setSpan(HiddenStampSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         for (r in rendered.strikes) {
-            if (r.last <= sp.length)
-                sp.setSpan(StrikethroughSpan(), r.first, r.last, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (r.last + 1 <= sp.length)
+                sp.setSpan(StrikethroughSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
         suppress = true

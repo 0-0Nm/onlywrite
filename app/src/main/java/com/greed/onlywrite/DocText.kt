@@ -67,7 +67,7 @@ object DocText {
     fun countChars(text: String, stamps: List<IntRange>): Int {
         var n = 0
         val hide = BooleanArray(text.length)
-        for (r in stamps) for (i in r.first until minOf(r.last, text.length)) hide[i] = true
+        for (r in stamps) for (i in r.first..minOf(r.last, text.length - 1)) hide[i] = true
         for (i in text.indices) {
             val c = text[i]
             if (hide[i] || c == '\n' || c == '\u3000') continue
