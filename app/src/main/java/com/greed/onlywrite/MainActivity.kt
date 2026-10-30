@@ -375,11 +375,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showArchive(a: Archive) {
-        android.app.AlertDialog.Builder(this)
-            .setTitle(a.name)
-            .setMessage(a.plain)
-            .setPositiveButton("返回", null)
-            .show()
+        val i = android.content.Intent(this, ArchiveViewActivity::class.java)
+        i.putExtra("name", a.name)
+        startActivity(i)
+        closeSidebar()
     }
 
     private fun archiveAndNew() {

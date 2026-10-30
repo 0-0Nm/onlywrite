@@ -41,7 +41,7 @@ object Clock {
     }
 }
 
-class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 2) {
+class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 3) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -73,6 +73,9 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 2) {
     }
 
     override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) {
+        if (old < 3) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS notes(archive TEXT NOT NULL, s INTEGER, e INTEGER, body TEXT, ts INTEGER)")
+        }
         if (old < 2) {
             db.execSQL("CREATE TABLE IF NOT EXISTS archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER)")
             runCatching { db.execSQL("CREATE TRIGGER arch_no_update BEFORE UPDATE ON archives BEGIN SELECT RAISE(ABORT,'append-only'); END") }
@@ -113,6 +116,23 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 2) {
             while (c.moveToNext()) {
                 out.add(Archive(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getInt(3)))
             }
+        }
+        return out
+    }
+
+    fun putNote(archive: String, s: Int, e: Int, body: String) {
+        writableDatabase.execSQL(
+            "INSERT INTO notes(archive,s,e,body,ts) VALUES(?,?,?,?,?)",
+            arrayOf(archive, s, e, body, System.currentTimeMillis())
+        )
+    }
+
+    fun notesOf(archive: String): List<Triple<Int, Int, String>> {
+        val out = ArrayList<Triple<Int, Int, String>>()
+        readableDatabase.rawQuery(
+            "SELECT s,e,body FROM notes WHERE archive=? ORDER BY ts ASC", arrayOf(archive)
+        ).use { c ->
+            while (c.moveToNext()) out.add(Triple(c.getInt(0), c.getInt(1), c.getString(2) ?: ""))
         }
         return out
     }

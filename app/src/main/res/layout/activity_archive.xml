@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0F1012">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="14dp">
+
+        <TextView
+            android:id="@+id/aTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#8F949C"
+            android:textSize="11sp"
+            android:letterSpacing="0.2"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="ARCHIVE" />
+
+        <TextView
+            android:id="@+id/aCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#6D727A"
+            android:textSize="10sp"
+            android:text="0 字" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1B1E23" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/aBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="40dp"
+            android:textColor="#E9E6E1"
+            android:textSize="18sp"
+            android:lineSpacingMultiplier="1.0"
+            android:lineSpacingExtra="6dp"
+            android:textIsSelectable="true" />
+    </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1B1E23" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <TextView
+            android:id="@+id/btnNote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▪注记"
+            android:textColor="#8A8271"
+            android:textSize="11sp"
+            android:letterSpacing="0.28"
+            android:padding="8dp" />
+
+        <TextView
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▪返回"
+            android:textColor="#4D525A"
+            android:textSize="11sp"
+            android:letterSpacing="0.28"
+            android:padding="8dp"
+            android:layout_marginStart="18dp" />
+    </LinearLayout>
+</LinearLayout>
