@@ -381,17 +381,33 @@ class MainActivity : AppCompatActivity() {
         tabArch.setOnClickListener { selectTab(1) }
         tabRec.setOnClickListener { selectTab(2) }
 
-        findViewById<TextView>(R.id.sbExport).setOnClickListener {
-            val list = store.allArchives()
-            if (list.isEmpty()) { t("还没有归档。"); return@setOnClickListener }
-            val sb = StringBuilder()
-            for (a in list) { sb.append(a.name).append("\n\n").append(a.plain).append("\n\n\n") }
-            t("共 " + list.size + " 条归档，导出功能下一步接文件选择器")
-            android.app.AlertDialog.Builder(this)
-                .setTitle("归档全文 · " + list.size + " 条")
-                .setMessage(sb.toString())
-                .setPositiveButton("关闭", null)
-                .show()
+        findViewById<TextView>(R.id.sbExport).setOnClickListener { pickDir.launch(null) }
+    }
+
+    private val pickDir = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) exportAll(uri)
+    }
+
+    private fun exportAll(tree: android.net.Uri) {
+        val list = store.allArchives()
+        if (list.isEmpty()) { t("还没有归档。"); return }
+        try {
+            val root = androidx.documentfile.provider.DocumentFile.fromTreeUri(this, tree)
+            if (root == null) { t("拿不到这个目录。"); return }
+            var n = 0
+            for (a in list) {
+                val fn = a.name.replace(Regex("[^0-9A-Za-z\u4e00-\u9fa5]+"), "-") + ".txt"
+                val f = root.findFile(fn) ?: root.createFile("text/plain", fn)
+                if (f != null) {
+                    contentResolver.openOutputStream(f.uri)?.use {
+                        it.write((a.name + "\n\n" + a.plain).toByteArray(Charsets.UTF_8))
+                    }
+                    n++
+                }
+            }
+            t("已导出 " + n + " 个 TXT")
+        } catch (e: Throwable) {
+            t("导出失败：" + (e.message ?: "未知"))
         }
     }
 

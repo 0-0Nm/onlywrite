@@ -9,6 +9,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+data class Note(val s: Int, val e: Int, val body: String, val ts: Long)
+
 data class AudioRec(val name: String, val ts: Long, val path: String, val size: Long)
 
 data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int)
@@ -132,12 +134,12 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 4) {
         )
     }
 
-    fun notesOf(archive: String): List<Triple<Int, Int, String>> {
-        val out = ArrayList<Triple<Int, Int, String>>()
+    fun notesOf(archive: String): List<Note> {
+        val out = ArrayList<Note>()
         readableDatabase.rawQuery(
-            "SELECT s,e,body FROM notes WHERE archive=? ORDER BY ts ASC", arrayOf(archive)
+            "SELECT s,e,body,ts FROM notes WHERE archive=? ORDER BY ts ASC", arrayOf(archive)
         ).use { c ->
-            while (c.moveToNext()) out.add(Triple(c.getInt(0), c.getInt(1), c.getString(2) ?: ""))
+            while (c.moveToNext()) out.add(Note(c.getInt(0), c.getInt(1), c.getString(2) ?: "", c.getLong(3)))
         }
         return out
     }
