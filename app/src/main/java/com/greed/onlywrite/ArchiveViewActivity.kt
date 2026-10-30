@@ -63,6 +63,16 @@ class ArchiveViewActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.btnNote).setOnClickListener { addNote() }
     }
 
+    companion object {
+        /** 四档注记底色：白 → 逐步加灰（深底上半透明叠加） */
+        private val NOTE_BG = intArrayOf(
+            0x40FFFDF7.toInt(),   // 最新 · 近白
+            0x30DCD9D2.toInt(),   // 次新 · 白掺灰
+            0x22B4B1AA.toInt(),   // 再旧
+            0x16908E88.toInt()    // 最旧 · 明显偏灰
+        )
+    }
+
     private fun loadFont() {
         val f = File(filesDir, "font.ttf")
         if (!f.exists()) return
@@ -100,11 +110,17 @@ class ArchiveViewActivity : AppCompatActivity() {
             )
         }
 
-        for (n in store.notesOf(name)) {
+        val notes = store.notesOf(name)
+        // 四档：按注记时间从新到旧，白 → 灰
+        val level = noteLevels(notes)
+        // 按时间升序依次叠加，最新的落在最后 → 视觉上压在最上层
+        val order = notes.indices.sortedBy { notes[it].ts }
+        for (i in order) {
+            val n = notes[i]
             val a = n.s.coerceIn(0, sp.length)
             val b = n.e.coerceIn(0, sp.length)
             if (b > a) {
-                sp.setSpan(BackgroundColorSpan(0x2E2F2A1E), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sp.setSpan(BackgroundColorSpan(NOTE_BG[level[i]]), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sp.setSpan(UnderlineSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sp.setSpan(object : ClickableSpan() {
                     override fun onClick(w: View) { showNotes(a, b) }
@@ -273,6 +289,18 @@ class ArchiveViewActivity : AppCompatActivity() {
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
         dlg.show()
+    }
+
+    /** 0=最新(最白) 3=最旧(最灰)，按 time 分位落档 */
+    private fun noteLevels(notes: List<Note>): IntArray {
+        val lv = IntArray(notes.size)
+        if (notes.isEmpty()) return lv
+        if (notes.size == 1) { lv[0] = 0; return lv }
+        val order = notes.indices.sortedByDescending { notes[it].ts }
+        order.forEachIndexed { rank, idx ->
+            lv[idx] = (rank * 4 / notes.size).coerceIn(0, 3)
+        }
+        return lv
     }
 
     private fun parseStrikes(s: String): List<Pair<Int, Int>> {
