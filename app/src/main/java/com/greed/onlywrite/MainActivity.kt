@@ -600,5 +600,5 @@ class MainActivity : AppCompatActivity() {
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
     private fun dpF(v: Float) = v * resources.displayMetrics.density
-    private fun t(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
+    private fun t(m: String) = Hint.show(this, m)
 }

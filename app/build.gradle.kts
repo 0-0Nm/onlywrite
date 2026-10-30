@@ -22,7 +22,10 @@ android {
         targetSdk = 34
         versionCode = 3 + ((System.getenv("GITHUB_RUN_NUMBER") ?: "0").toIntOrNull() ?: 0)
         versionName = "0.1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        buildConfigField("boolean", "DELTA", "false")
     }
+
+    buildFeatures { buildConfig = true }
 
     buildTypes {
         debug {

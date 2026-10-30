@@ -11,3 +11,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "OnlyWrite"
 include(":app")
+include(":appdelta")

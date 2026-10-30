@@ -73,7 +73,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         pPath.setOnClickListener {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("path", humanPath(path)))
-            Toast.makeText(this, "路径已复制", Toast.LENGTH_SHORT).show()
+            Hint.show(this, "路径已复制")
         }
 
         findViewById<TextView>(R.id.pOpen).setOnClickListener {
@@ -85,7 +85,7 @@ class AudioPlayerActivity : AppCompatActivity() {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 startActivity(i)
-            }.onFailure { Toast.makeText(this, "没有可打开它的应用", Toast.LENGTH_SHORT).show() }
+            }.onFailure { Hint.show(this, "没有可打开它的应用") }
         }
 
         findViewById<TextView>(R.id.pBack).setOnClickListener { finish() }

@@ -317,5 +317,5 @@ class ArchiveViewActivity : AppCompatActivity() {
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(Date(ts))
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-    private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
+    private fun toast(m: String) = Hint.show(this, m)
 }
