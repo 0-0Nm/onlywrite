@@ -6,6 +6,8 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StrikethroughSpan
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,8 +23,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnFont: TextView
     private lateinit var btnRec: TextView
     private lateinit var tglTime: TextView
+    private lateinit var sbWrap: FrameLayout
+    private lateinit var sbPanel: LinearLayout
+    private lateinit var sbList: LinearLayout
+    private lateinit var tabWrite: TextView
+    private lateinit var tabArch: TextView
+    private lateinit var tabRec: TextView
 
-    private val doc = "main"
+    private var doc = "main"
     private val revs = ArrayList<Rev>()
     private var suppress = false
     private var stampChars = 0
@@ -57,6 +65,7 @@ class MainActivity : AppCompatActivity() {
         store = Store(this)
 
         showStamps = getSharedPreferences("ow", MODE_PRIVATE).getBoolean("show_stamps", true)
+        doc = getSharedPreferences("ow", MODE_PRIVATE).getString("cur_doc", "main") ?: "main"
 
         editor.onRejected = { m -> t(m) }
         editor.onCaretMoved = { repositionStrike() }
@@ -67,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         btnFont.setOnClickListener { pickFont.launch(arrayOf("font/*", "*/*")) }
         btnRec.setOnClickListener { t("拾音：下一步接") }
         tglTime.setOnClickListener { toggleStamps() }
+        bindSidebar()
 
         paintToggle()
         applyFont()
@@ -247,6 +257,123 @@ class MainActivity : AppCompatActivity() {
                 .forEach { it.typeface = tf }
             t("字体已载入")
         }.onFailure { t("字体加载失败：${it.message}") }
+    }
+
+
+    /* ---------------- 侧栏 ---------------- */
+
+    private fun bindSidebar() {
+        sbWrap = findViewById(R.id.sbWrap)
+        sbPanel = findViewById(R.id.sbPanel)
+        sbList = findViewById(R.id.sbList)
+        tabWrite = findViewById(R.id.tabWrite)
+        tabArch = findViewById(R.id.tabArch)
+        tabRec = findViewById(R.id.tabRec)
+
+        findViewById<TextView>(R.id.btnMenu).setOnClickListener { openSidebar() }
+        findViewById<View>(R.id.sbScrim).setOnClickListener { closeSidebar() }
+        sbPanel.setOnClickListener { }
+        tabWrite.setOnClickListener { selectTab(0) }
+        tabArch.setOnClickListener { selectTab(1) }
+        tabRec.setOnClickListener { selectTab(2) }
+
+        findViewById<TextView>(R.id.sbExport).setOnClickListener {
+            val list = store.allArchives()
+            if (list.isEmpty()) { t("还没有归档。"); return@setOnClickListener }
+            val sb = StringBuilder()
+            for (a in list) { sb.append(a.name).append("\n\n").append(a.plain).append("\n\n\n") }
+            t("共 " + list.size + " 条归档，导出功能下一步接文件选择器")
+            android.app.AlertDialog.Builder(this)
+                .setTitle("归档全文 · " + list.size + " 条")
+                .setMessage(sb.toString())
+                .setPositiveButton("关闭", null)
+                .show()
+        }
+    }
+
+    private fun openSidebar() {
+        sbWrap.visibility = View.VISIBLE
+        sbPanel.translationX = -dp(320).toFloat()
+        sbPanel.animate().translationX(0f).setDuration(240).start()
+        selectTab(1)
+    }
+
+    private fun closeSidebar() {
+        sbPanel.animate().translationX(-dp(320).toFloat()).setDuration(200)
+            .withEndAction { sbWrap.visibility = View.GONE }.start()
+    }
+
+    private fun selectTab(i: Int) {
+        val on = 0xFFE9E6E1.toInt()
+        val off = 0xFF5F646C.toInt()
+        tabWrite.setTextColor(if (i == 0) on else off)
+        tabArch.setTextColor(if (i == 1) on else off)
+        tabRec.setTextColor(if (i == 2) on else off)
+        renderList(i)
+    }
+
+    private fun renderList(tab: Int) {
+        sbList.removeAllViews()
+        when (tab) {
+            0 -> {
+                sbList.addView(row("＋ 归档并开新卷") { archiveAndNew() })
+                sbList.addView(hint("正在刻录的是一卷新的。点上面那条，封存它，另起一卷。"))
+            }
+            1 -> {
+                val list = store.allArchives()
+                if (list.isEmpty()) {
+                    sbList.addView(hint("还没有归档。\n写完一卷，到「刻录」点归档。"))
+                } else {
+                    for (a in list) {
+                        val n = a.plain.replace(Regex("\\s"), "").length
+                        sbList.addView(row(a.name + "\n" + n + " 字 · " + a.strokes + " 笔") { showArchive(a) })
+                    }
+                }
+            }
+            else -> sbList.addView(hint("拾音：下一步接。\n开启后会在光标处刻「寄耳」，结束刻「还心」，音频按时间戳归档。"))
+        }
+    }
+
+    private fun row(text: String, onClick: () -> Unit): TextView {
+        val tv = TextView(this)
+        tv.text = text
+        tv.setTextColor(0xFF8D8981.toInt())
+        tv.textSize = 12f
+        tv.setLineSpacing(0f, 1.5f)
+        tv.setPadding(dp(18), dp(10), dp(18), dp(10))
+        tv.setOnClickListener { onClick() }
+        return tv
+    }
+
+    private fun hint(text: String): TextView {
+        val tv = TextView(this)
+        tv.text = text
+        tv.setTextColor(0xFF4A4F57.toInt())
+        tv.textSize = 11f
+        tv.setLineSpacing(0f, 1.7f)
+        tv.setPadding(dp(18), dp(14), dp(18), dp(14))
+        return tv
+    }
+
+    private fun showArchive(a: Archive) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle(a.name)
+            .setMessage(a.plain)
+            .setPositiveButton("返回", null)
+            .show()
+    }
+
+    private fun archiveAndNew() {
+        val txt = editor.text?.toString() ?: ""
+        if (txt.trim().isEmpty()) { t("还没有字，没什么可归档的。"); return }
+        val name = Clock.stamp()
+        store.putArchive(name, System.currentTimeMillis(), txt, revs.size)
+        doc = "doc-" + System.currentTimeMillis()
+        getSharedPreferences("ow", MODE_PRIVATE).edit().putString("cur_doc", doc).apply()
+        revs.clear()
+        rebuild(keepCaret = false)
+        t("已归档：" + name + "\n新的一卷已经铺开。")
+        selectTab(1)
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

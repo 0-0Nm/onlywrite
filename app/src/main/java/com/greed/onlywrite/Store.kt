@@ -9,6 +9,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int)
+
 data class Rev(
     val seq: Int,
     val op: String,          // carve / stamp / strike
@@ -39,7 +41,7 @@ object Clock {
     }
 }
 
-class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 1) {
+class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -59,9 +61,24 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 1) {
             "CREATE TRIGGER no_delete BEFORE DELETE ON revisions " +
                 "BEGIN SELECT RAISE(ABORT,'append-only'); END"
         )
+        db.execSQL("CREATE TABLE archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER)")
+        db.execSQL(
+            "CREATE TRIGGER arch_no_update BEFORE UPDATE ON archives " +
+                "BEGIN SELECT RAISE(ABORT,'append-only'); END"
+        )
+        db.execSQL(
+            "CREATE TRIGGER arch_no_delete BEFORE DELETE ON archives " +
+                "BEGIN SELECT RAISE(ABORT,'append-only'); END"
+        )
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) {
+        if (old < 2) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER)")
+            runCatching { db.execSQL("CREATE TRIGGER arch_no_update BEFORE UPDATE ON archives BEGIN SELECT RAISE(ABORT,'append-only'); END") }
+            runCatching { db.execSQL("CREATE TRIGGER arch_no_delete BEFORE DELETE ON archives BEGIN SELECT RAISE(ABORT,'append-only'); END") }
+        }
+    }
 
     fun all(doc: String): List<Rev> {
         val out = ArrayList<Rev>()
@@ -76,6 +93,25 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 1) {
                         c.getInt(4), c.getString(5) ?: "", c.getInt(6), c.getInt(7), c.getLong(8)
                     )
                 )
+            }
+        }
+        return out
+    }
+
+    fun putArchive(name: String, ts: Long, plain: String, strokes: Int) {
+        writableDatabase.execSQL(
+            "INSERT OR REPLACE INTO archives(name,ts,plain,strokes) VALUES(?,?,?,?)",
+            arrayOf(name, ts, plain, strokes)
+        )
+    }
+
+    fun allArchives(): List<Archive> {
+        val out = ArrayList<Archive>()
+        readableDatabase.rawQuery(
+            "SELECT name,ts,plain,strokes FROM archives ORDER BY ts ASC", null
+        ).use { c ->
+            while (c.moveToNext()) {
+                out.add(Archive(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getInt(3)))
             }
         }
         return out

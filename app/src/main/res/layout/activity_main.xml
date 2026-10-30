@@ -32,6 +32,16 @@
                 android:layout_weight="1" />
 
             <TextView
+                android:id="@+id/btnMenu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="·册"
+                android:textColor="#4D525A"
+                android:textSize="11sp"
+                android:letterSpacing="0.2"
+                android:padding="6dp" />
+
+            <TextView
                 android:id="@+id/btnFont"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -128,4 +138,115 @@
                 android:padding="8dp" />
         </LinearLayout>
     </LinearLayout>
+    <FrameLayout
+        android:id="@+id/sbWrap"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/sbScrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#99000000" />
+
+        <LinearLayout
+            android:id="@+id/sbPanel"
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="#131518">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ONLYWRITE"
+                android:textColor="#8F949C"
+                android:textSize="11sp"
+                android:letterSpacing="0.32"
+                android:paddingStart="18dp"
+                android:paddingTop="18dp"
+                android:paddingBottom="14dp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#1B1E23" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="12dp">
+
+                <TextView
+                    android:id="@+id/tabWrite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="刻录"
+                    android:textColor="#E9E6E1"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.24"
+                    android:paddingEnd="20dp" />
+
+                <TextView
+                    android:id="@+id/tabArch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="归档"
+                    android:textColor="#5F646C"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.24"
+                    android:paddingEnd="20dp" />
+
+                <TextView
+                    android:id="@+id/tabRec"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="拾音"
+                    android:textColor="#5F646C"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.24" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#1B1E23" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/sbList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="16dp" />
+            </ScrollView>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#1B1E23" />
+
+            <TextView
+                android:id="@+id/sbExport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="所有归档导出为文件"
+                android:textColor="#8A8271"
+                android:textSize="12sp"
+                android:letterSpacing="0.2"
+                android:gravity="center"
+                android:paddingTop="16dp"
+                android:paddingBottom="18dp" />
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>
