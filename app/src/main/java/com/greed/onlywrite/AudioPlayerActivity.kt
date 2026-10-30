@@ -50,10 +50,9 @@ class AudioPlayerActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (mp == null) {
-                val file = File(path)
-                if (!file.exists()) { state.text = "文件不存在"; return@setOnClickListener }
                 mp = MediaPlayer().apply {
-                    setDataSource(file.absolutePath)
+                    if (path.startsWith("content://")) setDataSource(this@AudioPlayerActivity, android.net.Uri.parse(path))
+                    else setDataSource(path)
                     prepare()
                     setOnCompletionListener {
                         playing = false
@@ -76,10 +75,9 @@ class AudioPlayerActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.pOpen).setOnClickListener {
-            val f = File(path)
-            if (!f.exists()) { Toast.makeText(this, "文件不存在", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
             runCatching {
-                val uri = FileProvider.getUriForFile(this, "com.greed.onlywrite.fileprovider", f)
+                val uri = if (path.startsWith("content://")) android.net.Uri.parse(path)
+                          else FileProvider.getUriForFile(this, "com.greed.onlywrite.fileprovider", File(path))
                 val i = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, "audio/mp4")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

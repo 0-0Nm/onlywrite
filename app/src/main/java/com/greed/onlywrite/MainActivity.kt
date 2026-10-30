@@ -3,7 +3,11 @@ package com.greed.onlywrite
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.content.ContentValues
 import android.media.MediaRecorder
+import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
@@ -48,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     private var recorder: MediaRecorder? = null
     private var recFile: File? = null
     private var recName: String = ""
+    private var recUri: Uri? = null
+    private var recPfd: android.os.ParcelFileDescriptor? = null
 
     private val fontDir by lazy { File(filesDir, "font.ttf") }
 
@@ -308,40 +314,60 @@ class MainActivity : AppCompatActivity() {
             return
         }
         try {
-            val dir = File(filesDir, "records").apply { mkdirs() }
             val nm = Clock.stamp()
-            val f = File(dir, nm.replace(Regex("[^0-9A-Za-z]+"), "-") + ".mp4")
+            val display = nm.replace(Regex("[^0-9A-Za-z]+"), "-") + ".m4a"
+            val values = ContentValues().apply {
+                put(MediaStore.Audio.Media.DISPLAY_NAME, display)
+                put(MediaStore.Audio.Media.MIME_TYPE, "audio/mp4")
+                put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/OnlyWrite")
+                put(MediaStore.Audio.Media.IS_PENDING, 1)
+            }
+            val uri = contentResolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
+            if (uri == null) { t("建不了录音文件。"); return }
+            val pfd = contentResolver.openFileDescriptor(uri, "rw")
+            if (pfd == null) { t("打不开录音文件。"); return }
             val mr = MediaRecorder()
             mr.setAudioSource(MediaRecorder.AudioSource.MIC)
             mr.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             mr.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
             mr.setAudioEncodingBitRate(96000)
             mr.setAudioSamplingRate(44100)
-            mr.setOutputFile(f.absolutePath)
+            mr.setOutputFile(pfd.fileDescriptor)
             mr.prepare()
             mr.start()
             recorder = mr
-            recFile = f
+            recUri = uri
+            recPfd = pfd
             recName = nm
             insertMarker("寄耳")
             t("拾音中。再点一次结束。")
         } catch (e: Throwable) {
             runCatching { recorder?.release() }
-            recorder = null
+            runCatching { recPfd?.close() }
+            recorder = null; recPfd = null
             t("拾音打不开：" + (e.message ?: "未知"))
         }
     }
 
     private fun stopRec() {
         insertMarker("还心")
-        val f = recFile
         val nm = recName
+        val uri = recUri
         runCatching { recorder?.stop() }
         runCatching { recorder?.release() }
-        recorder = null
-        if (f != null && f.exists()) {
-            store.putAudio(nm, System.currentTimeMillis(), f.absolutePath, f.length(), doc)
-            t("已归档拾音：" + f.name)
+        runCatching { recPfd?.close() }
+        recorder = null; recPfd = null; recUri = null
+        if (uri != null) {
+            runCatching {
+                val cv = ContentValues().apply { put(MediaStore.Audio.Media.IS_PENDING, 0) }
+                contentResolver.update(uri, cv, null, null)
+            }
+            var size = 0L
+            runCatching {
+                contentResolver.openFileDescriptor(uri, "r")?.use { size = it.statSize }
+            }
+            store.putAudio(nm, System.currentTimeMillis(), uri.toString(), size, doc)
+            t("已归档拾音：Music/OnlyWrite/" + nm.replace(Regex("[^0-9A-Za-z]+"), "-") + ".m4a")
         } else {
             t("这一段没录到东西。")
         }
@@ -382,6 +408,40 @@ class MainActivity : AppCompatActivity() {
         tabRec.setOnClickListener { selectTab(2) }
 
         findViewById<TextView>(R.id.sbExport).setOnClickListener { pickDir.launch(null) }
+    }
+
+    private val pickExport = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            }
+            getSharedPreferences("ow", MODE_PRIVATE).edit().putString("export_tree", uri.toString()).apply()
+            t("外送目录已设置")
+            selectTab(1)
+        }
+    }
+
+    private fun writeOut(name: String, body: String) {
+        val s = getSharedPreferences("ow", MODE_PRIVATE).getString("export_tree", null) ?: return
+        runCatching {
+            val root = androidx.documentfile.provider.DocumentFile.fromTreeUri(this, android.net.Uri.parse(s)) ?: return
+            val safe = name.replace(Regex("[^0-9A-Za-z\u4e00-\u9fa5]+"), "-")
+            val txt = root.findFile(safe + ".txt") ?: root.createFile("text/plain", safe + ".txt")
+            txt?.let {
+                contentResolver.openOutputStream(it.uri)?.use { o ->
+                    o.write((name + "\n\n" + body).toByteArray(Charsets.UTF_8))
+                }
+            }
+            val meta = "{\"name\":\"" + name + "\",\"chars\":" + body.replace(Regex("\\s"), "").length + "}"
+            val js = root.findFile(safe + ".json") ?: root.createFile("application/json", safe + ".json")
+            js?.let {
+                contentResolver.openOutputStream(it.uri)?.use { o -> o.write(meta.toByteArray(Charsets.UTF_8)) }
+            }
+        }
     }
 
     private val pickDir = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -441,6 +501,10 @@ class MainActivity : AppCompatActivity() {
                 sbList.addView(hint("正在刻录的是一卷新的。点上面那条，封存它，另起一卷。"))
             }
             1 -> {
+                val tree = getSharedPreferences("ow", MODE_PRIVATE).getString("export_tree", null)
+                sbList.addView(row(if (tree == null) "外送目录：未设置\n点这里选一个目录" else "外送目录：已设置\n点这里更换" ) {
+                    pickExport.launch(null)
+                })
                 val list = store.allArchives()
                 if (list.isEmpty()) {
                     sbList.addView(hint("还没有归档。\n写完一卷，到「刻录」点归档。"))
@@ -505,6 +569,7 @@ class MainActivity : AppCompatActivity() {
         if (txt.trim().isEmpty()) { t("还没有字，没什么可归档的。"); return }
         val name = Clock.stamp()
         store.putArchive(name, System.currentTimeMillis(), txt, revs.size)
+        writeOut(name, txt)
         doc = "doc-" + System.currentTimeMillis()
         getSharedPreferences("ow", MODE_PRIVATE).edit().putString("cur_doc", doc).apply()
         revs.clear()
