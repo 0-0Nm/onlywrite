@@ -139,6 +139,8 @@ class MainActivity : AppCompatActivity() {
                 // 与网页版一致：小一号、暗灰、等宽
                 sp.setSpan(RelativeSizeSpan(0.68f), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sp.setSpan(ForegroundColorSpan(0xFF5F5C52.toInt()), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val target = (editor.textSize * editor.lineSpacingMultiplier * 0.62f).toInt()
+                sp.setSpan(StampLineSpan(target), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 val tf = appTf
                 if (tf != null) sp.setSpan(StampFontSpan(tf), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 else sp.setSpan(TypefaceSpan("monospace"), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -146,8 +148,10 @@ class MainActivity : AppCompatActivity() {
         }
         for (r in rendered.strikes) {
             if (r.last + 1 <= sp.length) {
-                sp.setSpan(StrikethroughSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                sp.setSpan(ForegroundColorSpan(0xFF5B6068.toInt()), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sp.setSpan(
+                    RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dp(1.4).toFloat()),
+                    r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
             }
         }
 
@@ -222,8 +226,10 @@ class MainActivity : AppCompatActivity() {
         val (a, b) = r
         val sp = editor.text as? Spannable
         if (sp != null) {
-            sp.setSpan(StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            sp.setSpan(ForegroundColorSpan(0xFF5B6068.toInt()), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sp.setSpan(
+                RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dp(1.4).toFloat()),
+                a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
         }
         addRev("strike", 0, "", a, b)
         supdateCount()
