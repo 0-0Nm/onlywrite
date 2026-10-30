@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0F1012">
+
+    <TextView
+        android:id="@+id/pTitle"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="14dp"
+        android:textColor="#8F949C"
+        android:textSize="11sp"
+        android:letterSpacing="0.2"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1B1E23" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/pPlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▪ 播放"
+            android:textColor="#8A8271"
+            android:textSize="16sp"
+            android:letterSpacing="0.3"
+            android:padding="20dp" />
+
+        <TextView
+            android:id="@+id/pState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#4A4F57"
+            android:textSize="11sp"
+            android:layout_marginTop="10dp" />
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1B1E23" />
+
+    <TextView
+        android:id="@+id/pPath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp"
+        android:textColor="#5F646C"
+        android:textSize="10sp"
+        android:lineSpacingExtra="3dp" />
+
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1B1E23" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
+
+        <TextView
+            android:id="@+id/pBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▪返回"
+            android:textColor="#4D525A"
+            android:textSize="11sp"
+            android:letterSpacing="0.28"
+            android:padding="8dp" />
+    </LinearLayout>
+</LinearLayout>

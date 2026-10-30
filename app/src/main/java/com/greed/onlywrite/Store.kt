@@ -9,6 +9,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
+data class AudioRec(val name: String, val ts: Long, val path: String, val size: Long)
+
 data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int)
 
 data class Rev(
@@ -41,7 +43,7 @@ object Clock {
     }
 }
 
-class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 3) {
+class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 4) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -73,6 +75,9 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 3) {
     }
 
     override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) {
+        if (old < 4) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS audio(name TEXT PRIMARY KEY, ts INTEGER, path TEXT, size INTEGER, doc TEXT)")
+        }
         if (old < 3) {
             db.execSQL("CREATE TABLE IF NOT EXISTS notes(archive TEXT NOT NULL, s INTEGER, e INTEGER, body TEXT, ts INTEGER)")
         }
@@ -133,6 +138,21 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 3) {
             "SELECT s,e,body FROM notes WHERE archive=? ORDER BY ts ASC", arrayOf(archive)
         ).use { c ->
             while (c.moveToNext()) out.add(Triple(c.getInt(0), c.getInt(1), c.getString(2) ?: ""))
+        }
+        return out
+    }
+
+    fun putAudio(name: String, ts: Long, path: String, size: Long, doc: String) {
+        writableDatabase.execSQL(
+            "INSERT OR REPLACE INTO audio(name,ts,path,size,doc) VALUES(?,?,?,?,?)",
+            arrayOf(name, ts, path, size, doc)
+        )
+    }
+
+    fun allAudio(): List<AudioRec> {
+        val out = ArrayList<AudioRec>()
+        readableDatabase.rawQuery("SELECT name,ts,path,size FROM audio ORDER BY ts ASC", null).use { c ->
+            while (c.moveToNext()) out.add(AudioRec(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getLong(3)))
         }
         return out
     }

@@ -1,6 +1,9 @@
 package com.greed.onlywrite
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.media.MediaRecorder
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
@@ -42,6 +45,9 @@ class MainActivity : AppCompatActivity() {
     private var lastStamps: List<IntRange> = emptyList()
     private var floor = 0
     private var appTf: Typeface? = null
+    private var recorder: MediaRecorder? = null
+    private var recFile: File? = null
+    private var recName: String = ""
 
     private val fontDir by lazy { File(filesDir, "font.ttf") }
 
@@ -78,7 +84,7 @@ class MainActivity : AppCompatActivity() {
 
         btnStrike.setOnClickListener { doStrike() }
         btnFont.setOnClickListener { pickFont.launch(arrayOf("font/*", "*/*")) }
-        btnRec.setOnClickListener { t("拾音：下一步接") }
+        btnRec.setOnClickListener { toggleRec() }
         tglTime.setOnClickListener { toggleStamps() }
         bindSidebar()
 
@@ -276,6 +282,76 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    /* ---------------- 拾音 ---------------- */
+
+    private val permAudio = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) startRec() else t("没有麦克风权限，拾音开不了。")
+    }
+
+    private fun toggleRec() {
+        if (recorder != null) stopRec() else startRec()
+    }
+
+    private fun startRec() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            permAudio.launch(Manifest.permission.RECORD_AUDIO)
+            return
+        }
+        try {
+            val dir = File(filesDir, "records").apply { mkdirs() }
+            val nm = Clock.stamp()
+            val f = File(dir, nm.replace(Regex("[^0-9A-Za-z]+"), "-") + ".mp4")
+            val mr = MediaRecorder()
+            mr.setAudioSource(MediaRecorder.AudioSource.MIC)
+            mr.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            mr.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            mr.setAudioEncodingBitRate(96000)
+            mr.setAudioSamplingRate(44100)
+            mr.setOutputFile(f.absolutePath)
+            mr.prepare()
+            mr.start()
+            recorder = mr
+            recFile = f
+            recName = nm
+            insertMarker("寄耳")
+            t("拾音中。再点一次结束。")
+        } catch (e: Throwable) {
+            runCatching { recorder?.release() }
+            recorder = null
+            t("拾音打不开：" + (e.message ?: "未知"))
+        }
+    }
+
+    private fun stopRec() {
+        insertMarker("还心")
+        val f = recFile
+        val nm = recName
+        runCatching { recorder?.stop() }
+        runCatching { recorder?.release() }
+        recorder = null
+        if (f != null && f.exists()) {
+            store.putAudio(nm, System.currentTimeMillis(), f.absolutePath, f.length(), doc)
+            t("已归档拾音：" + f.name)
+        } else {
+            t("这一段没录到东西。")
+        }
+        selectTab(2)
+    }
+
+    /** 在光标处刻下标记（寄耳 / 还心），与普通输入等价入链 */
+    private fun insertMarker(text: String) {
+        val len = editor.text?.length ?: 0
+        val pos = DocText.safePos(editor.selectionStart, len)
+        suppress = true
+        editor.recording = false
+        editor.text?.insert(pos, text)
+        editor.recording = true
+        suppress = false
+        addRev("carve", pos, text, 0, 0)
+        editor.setSelection(pos + text.length)
+        supdateCount()
+    }
+
     /* ---------------- 侧栏 ---------------- */
 
     private fun bindSidebar() {
@@ -347,7 +423,22 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            else -> sbList.addView(hint("拾音：下一步接。\n开启后会在光标处刻「寄耳」，结束刻「还心」，音频按时间戳归档。"))
+            else -> {
+                val list = store.allAudio()
+                if (list.isEmpty()) {
+                    sbList.addView(hint("还没有拾音。\n点底栏「▪拾音」开始，结束时会刻下「还心」并归档。"))
+                } else {
+                    for (a in list) {
+                        val kb = (a.size / 1024).toString() + " KB"
+                        sbList.addView(row(a.name + "\n" + kb) {
+                            val i = android.content.Intent(this, AudioPlayerActivity::class.java)
+                            i.putExtra("name", a.name)
+                            i.putExtra("path", a.path)
+                            startActivity(i)
+                        })
+                    }
+                }
+            }
         }
     }
 
