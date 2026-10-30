@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
 
     private var lastStamps: List<IntRange> = emptyList()
     private var floor = 0
+    private var appTf: Typeface? = null
 
     private val fontDir by lazy { File(filesDir, "font.ttf") }
 
@@ -138,7 +139,9 @@ class MainActivity : AppCompatActivity() {
                 // 与网页版一致：小一号、暗灰、等宽
                 sp.setSpan(RelativeSizeSpan(0.68f), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 sp.setSpan(ForegroundColorSpan(0xFF5F5C52.toInt()), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                sp.setSpan(TypefaceSpan("monospace"), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val tf = appTf
+                if (tf != null) sp.setSpan(StampFontSpan(tf), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                else sp.setSpan(TypefaceSpan("monospace"), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         for (r in rendered.strikes) {
@@ -252,11 +255,18 @@ class MainActivity : AppCompatActivity() {
         if (!fontDir.exists()) return
         runCatching {
             val tf = Typeface.createFromFile(fontDir)
-            editor.typeface = tf
-            listOf(findViewById<TextView>(R.id.title), count, btnFont, tglTime, btnStrike, btnRec)
-                .forEach { it.typeface = tf }
+            appTf = tf
+            applyDeep(findViewById(android.R.id.content), tf)
+            rebuild(keepCaret = true)
             t("字体已载入")
         }.onFailure { t("字体加载失败：${it.message}") }
+    }
+
+    private fun applyDeep(v: android.view.View, tf: Typeface) {
+        if (v is TextView) v.typeface = tf
+        if (v is android.view.ViewGroup) {
+            for (i in 0 until v.childCount) applyDeep(v.getChildAt(i), tf)
+        }
     }
 
 
@@ -304,6 +314,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectTab(i: Int) {
+        appTf?.let { applyDeep(sbPanel, it) }
         val on = 0xFFE9E6E1.toInt()
         val off = 0xFF5F646C.toInt()
         tabWrite.setTextColor(if (i == 0) on else off)
@@ -341,6 +352,7 @@ class MainActivity : AppCompatActivity() {
         tv.textSize = 12f
         tv.setLineSpacing(0f, 1.5f)
         tv.setPadding(dp(18), dp(10), dp(18), dp(10))
+        appTf?.let { tv.typeface = it }
         tv.setOnClickListener { onClick() }
         return tv
     }
@@ -352,6 +364,7 @@ class MainActivity : AppCompatActivity() {
         tv.textSize = 11f
         tv.setLineSpacing(0f, 1.7f)
         tv.setPadding(dp(18), dp(14), dp(18), dp(14))
+        appTf?.let { tv.typeface = it }
         return tv
     }
 
