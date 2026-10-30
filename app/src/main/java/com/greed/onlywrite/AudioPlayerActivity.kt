@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import android.os.Bundle
 import android.view.View
@@ -33,7 +34,8 @@ class AudioPlayerActivity : AppCompatActivity() {
         path = intent.getStringExtra("path") ?: ""
 
         title.text = name
-        pPath.text = path
+        val human = humanPath(path)
+        pPath.text = human
 
         val f = File(filesDir, "font.ttf")
         if (f.exists()) runCatching {
@@ -70,7 +72,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
         pPath.setOnClickListener {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("path", path))
+            cm.setPrimaryClip(ClipData.newPlainText("path", humanPath(path)))
             Toast.makeText(this, "路径已复制", Toast.LENGTH_SHORT).show()
         }
 
@@ -87,6 +89,29 @@ class AudioPlayerActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.pBack).setOnClickListener { finish() }
+    }
+
+    /** content:// 转成人能读的绝对路径；拿不到就按 RELATIVE_PATH 拼 */
+    private fun humanPath(p: String): String {
+        if (!p.startsWith("content://")) return p
+        runCatching {
+            val uri = android.net.Uri.parse(p)
+            val proj = arrayOf(
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.RELATIVE_PATH,
+                MediaStore.Audio.Media.DISPLAY_NAME
+            )
+            contentResolver.query(uri, proj, null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val data = c.getString(0)
+                    if (!data.isNullOrEmpty()) return data
+                    val rel = c.getString(1) ?: ""
+                    val disp = c.getString(2) ?: ""
+                    if (disp.isNotEmpty()) return "/storage/emulated/0/" + rel + disp
+                }
+            }
+        }
+        return p
     }
 
     private fun deep(v: View, tf: Typeface) {
