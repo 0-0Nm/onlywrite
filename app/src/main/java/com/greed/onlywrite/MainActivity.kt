@@ -149,7 +149,7 @@ class MainActivity : AppCompatActivity() {
         for (r in rendered.strikes) {
             if (r.last + 1 <= sp.length) {
                 sp.setSpan(
-                    RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dp(1.4).toFloat()),
+                    RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dpF(1.4f)),
                     r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
@@ -227,7 +227,7 @@ class MainActivity : AppCompatActivity() {
         val sp = editor.text as? Spannable
         if (sp != null) {
             sp.setSpan(
-                RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dp(1.4).toFloat()),
+                RedStrikeSpan(0xFF6B7078.toInt(), 0xFFB0555A.toInt(), dpF(1.4f)),
                 a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
@@ -396,5 +396,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    private fun dpF(v: Float) = v * resources.displayMetrics.density
     private fun t(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
 }
