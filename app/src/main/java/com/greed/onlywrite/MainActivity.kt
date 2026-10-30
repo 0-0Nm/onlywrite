@@ -36,8 +36,7 @@ class MainActivity : AppCompatActivity() {
     private var stampChars = 0
     private var showStamps = true
 
-    /** canonical 下标 → 显示下标（隐藏时间行时会错位，靠它换算） */
-    private var map = IntArray(0)
+    private var lastStamps: List<IntRange> = emptyList()
 
     private val fontDir by lazy { File(filesDir, "font.ttf") }
 
@@ -114,51 +113,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun toRecs(): List<Rec> = revs.map { Rec(it.seq, it.op, it.pos, it.payload, it.s, it.e) }
+
     private fun rebuild(keepCaret: Boolean) {
         val oldCaret = editor.selectionStart
+        val rendered = DocText.render(toRecs())
+        lastStamps = rendered.stamps
 
-        val canon = StringBuilder()
-        val stampRanges = ArrayList<IntRange>()
-        stampChars = 0
-
-        for (r in revs) {
-            when (r.op) {
-                "carve" -> {
-                    val p = r.pos.coerceIn(0, canon.length)
-                    canon.insert(p, r.payload)
-                }
-                "stamp" -> {
-                    canon.append('\n')
-                    val st = canon.length
-                    canon.append(r.payload)
-                    stampRanges.add(st until canon.length)
-                    stampChars += r.payload.length
-                    canon.append('\n')
-                }
+        val sp = android.text.SpannableString(rendered.text)
+        if (!showStamps) {
+            for (r in rendered.stamps) {
+                if (r.first >= 0 && r.last <= sp.length)
+                    sp.setSpan(HiddenStampSpan(), r.first, r.last, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
-
-        val cs = canon.toString()
-        val hidden = BooleanArray(cs.length)
-        if (!showStamps) {
-            for (rg in stampRanges) for (i in rg.first until minOf(rg.last, cs.length)) hidden[i] = true
-        }
-
-        val disp = StringBuilder()
-        val idxToDisp = IntArray(cs.length + 1)
-        for (i in 0..cs.length) {
-            idxToDisp[i] = disp.length
-            if (i < cs.length && !hidden[i]) disp.append(cs[i])
-        }
-        map = idxToDisp
-
-        val sp = SpannableString(disp)
-        for (r in revs) {
-            if (r.op != "strike") continue
-            val a = if (r.start in idxToDisp.indices) idxToDisp[r.start] else disp.length
-            val b = if (r.end in idxToDisp.indices) idxToDisp[r.end] else disp.length
-            if (b > a && a >= 0 && b <= sp.length)
-                sp.setSpan(StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        for (r in rendered.strikes) {
+            if (r.last <= sp.length)
+                sp.setSpan(StrikethroughSpan(), r.first, r.last, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
         suppress = true
@@ -166,31 +137,30 @@ class MainActivity : AppCompatActivity() {
         val c = if (keepCaret) oldCaret.coerceIn(0, sp.length) else sp.length
         editor.setSelection(c)
         suppress = false
-        updateCount()
+        supdateCount()
         editor.post { repositionStrike() }
     }
 
-    private fun dispToCanon(d: Int): Int {
-        var best = 0
-        for (i in map.indices) if (map[i] <= d) best = i
-        return best
+    private fun supdateCount() {
+        val txt = editor.text?.toString() ?: return
+        count.text = DocText.countChars(txt, lastStamps).toString() + " 字"
     }
 
     /* ---------------- 写 ---------------- */
 
     private fun onTyped(ins: String) {
-        val pos = (editor.selectionStart - ins.length).coerceAtLeast(0)
-        addRev("carve", dispToCanon(pos).coerceAtLeast(0), ins, 0, 0)
+        val len = editor.text?.length ?: 0
+        val pos = DocText.safePos(editor.selectionStart - ins.length, len)
+        addRev("carve", pos, ins, 0, 0)
         if (ins.contains('\n')) {
             suppress = true
             val s = Clock.stamp()
-            editor.text!!.append(s + "\n\u3000\u3000")
+            editor.text?.append(s + "\n\u3000\u3000")
             addRev("stamp", 0, s, 0, 0)
-            editor.setSelection(editor.text!!.length)
-            stampChars += if (showStamps) s.length else 0
+            editor.setSelection(editor.text?.length ?: 0)
             suppress = false
         }
-        updateCount()
+        supdateCount()
         editor.post { repositionStrike() }
     }
 
@@ -205,14 +175,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun doStrike() {
-        val a = editor.selectionStart
-        val b = editor.selectionEnd
-        if (a < 0 || b <= a) { t("先选中要划掉的文字。"); return }
-        val ca = dispToCanon(a)
-        val cb = dispToCanon(b)
-        (editor.text!! as Spannable).setSpan(StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-        addRev("strike", 0, "", ca, cb)
-        updateCount()
+        val len = editor.text?.length ?: 0
+        val r = DocText.safeRange(editor.selectionStart, editor.selectionEnd, len)
+        if (r == null) { t("先选中要划掉的文字。"); return }
+        val (a, b) = r
+        (editor.text as? Spannable)?.setSpan(
+            StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        addRev("strike", 0, "", a, b)
+        supdateCount()
         t("已划掉。原文还在，只是划了道线。")
     }
 
@@ -233,17 +204,6 @@ class MainActivity : AppCompatActivity() {
             btnStrike.translationY = y + (lh - bh) / 2f
             btnStrike.translationX = (editor.width - btnStrike.width - dp(6)).toFloat()
         }
-    }
-
-    private fun updateCount() {
-        val t2 = editor.text ?: return
-        var n = 0
-        for (i in 0 until t2.length) {
-            val c = t2[i]
-            if (c == '\n' || c == '\u3000') continue
-            n++
-        }
-        count.text = "${(n - stampChars).coerceAtLeast(0)} 字"
     }
 
     /* ---------------- 字体 ---------------- */
