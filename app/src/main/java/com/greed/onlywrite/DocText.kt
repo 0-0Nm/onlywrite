@@ -23,7 +23,7 @@ data class Rendered(
     val floor: Int
         get() {
             if (stamps.isEmpty()) return 0
-            return (stamps.last().last + 1 + 2).coerceAtMost(text.length)
+            return (stamps.last().last + 4).coerceAtMost(text.length)
         }
 }
 

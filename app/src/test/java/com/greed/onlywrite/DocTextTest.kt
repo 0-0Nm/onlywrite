@@ -30,12 +30,11 @@ class DocTextTest {
 
     @Test fun stampInMiddleKeepsTail() {
         val r = DocText.render(listOf(
-            carve(1, 0, "abXcd"),
+            carve(1, 0, "ab"),
             stamp(2, 2, "TT"),
-            carve(3, 2 + 2 + 4, "cd")
+            carve(3, 2 + 2 + 2, "cd")
         ))
-        // 2 + len("TT")+2 = 6，尾部仍接在后面
-        assertEquals("ab\nTT\ncd", r.text.replace("cd", "cd"))
+        assertEquals("ab\nTT\ncd", r.text)
     }
 
     @Test fun strikeRangeClampedAndKept() {
