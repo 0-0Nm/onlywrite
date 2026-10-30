@@ -78,12 +78,30 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 6) {
 
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
-        // 历史库里可能因早期异常被吞导致缺列且版本已推进，这里每次打开都自检一次
-        runCatching {
-            db.execSQL("CREATE TABLE IF NOT EXISTS archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER, strikes TEXT, chain TEXT)")
-            addColumnIfMissing(db, "archives", "strikes", "TEXT")
-            addColumnIfMissing(db, "archives", "chain", "TEXT")
-        }
+        // 每次打开都做一次结构与列的完整自检：
+        // 历史上 runCatching 吞掉过 DDL 异常，版本号却已推进，导致表/列永久缺失且不再升级。
+        runCatching { ensureSchema(db) }
+    }
+
+    /** 幂等：缺表建表、缺列补列。任何历史坏状态打开即自愈。 */
+    private fun ensureSchema(db: SQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS revisions(
+                 docId TEXT NOT NULL, seq INTEGER NOT NULL, op TEXT NOT NULL,
+                 parent TEXT NOT NULL, hash TEXT NOT NULL,
+                 pos INTEGER, payload TEXT, s INTEGER, e INTEGER, ts INTEGER,
+                 PRIMARY KEY(docId, seq))"""
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_doc ON revisions(docId, seq)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS archives(name TEXT PRIMARY KEY, ts INTEGER, plain TEXT, strokes INTEGER, strikes TEXT, chain TEXT)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS audio(name TEXT PRIMARY KEY, ts INTEGER, path TEXT, size INTEGER, doc TEXT)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS notes(archive TEXT NOT NULL, s INTEGER, e INTEGER, body TEXT, ts INTEGER)")
+        addColumnIfMissing(db, "archives", "strikes", "TEXT")
+        addColumnIfMissing(db, "archives", "chain", "TEXT")
+        runCatching { db.execSQL("CREATE TRIGGER IF NOT EXISTS no_update BEFORE UPDATE ON revisions BEGIN SELECT RAISE(ABORT,'append-only'); END") }
+        runCatching { db.execSQL("CREATE TRIGGER IF NOT EXISTS no_delete BEFORE DELETE ON revisions BEGIN SELECT RAISE(ABORT,'append-only'); END") }
+        runCatching { db.execSQL("CREATE TRIGGER IF NOT EXISTS arch_no_update BEFORE UPDATE ON archives BEGIN SELECT RAISE(ABORT,'append-only'); END") }
+        runCatching { db.execSQL("CREATE TRIGGER IF NOT EXISTS arch_no_delete BEFORE DELETE ON archives BEGIN SELECT RAISE(ABORT,'append-only'); END") }
     }
 
     private fun addColumnIfMissing(db: SQLiteDatabase, table: String, col: String, type: String) {
