@@ -4,6 +4,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.text.style.StrikethroughSpan
 import android.view.View
 import android.widget.LinearLayout
@@ -37,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var showStamps = true
 
     private var lastStamps: List<IntRange> = emptyList()
+    private var floor = 0
 
     private val fontDir by lazy { File(filesDir, "font.ttf") }
 
@@ -67,8 +69,8 @@ class MainActivity : AppCompatActivity() {
         doc = getSharedPreferences("ow", MODE_PRIVATE).getString("cur_doc", "main") ?: "main"
 
         editor.onRejected = { m -> t(m) }
-        editor.onCaretMoved = { repositionStrike() }
-        editor.onCarve = { ins -> if (!suppress) onTyped(ins) }
+        editor.onCaretMoved = { if (editor.selectionStart < floor) editor.post { clampCaret() } else repositionStrike() }
+        editor.onInserted = { start, ins -> if (!suppress) onInserted(start, ins) }
         editor.setOnScrollChangeListener { _, _, _, _, _ -> repositionStrike() }
 
         btnStrike.setOnClickListener { doStrike() }
@@ -115,10 +117,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun toRecs(): List<Rec> = revs.map { Rec(it.seq, it.op, it.pos, it.payload, it.start, it.end) }
 
+    private fun clampCaret() {
+        if (editor.selectionStart < floor) editor.setSelection(floor.coerceAtMost(editor.text?.length ?: 0))
+    }
+
     private fun rebuild(keepCaret: Boolean) {
         val oldCaret = editor.selectionStart
         val rendered = DocText.render(toRecs())
         lastStamps = rendered.stamps
+        floor = rendered.floor
 
         val sp = android.text.SpannableString(rendered.text)
         if (!showStamps) {
@@ -128,14 +135,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
         for (r in rendered.strikes) {
-            if (r.last + 1 <= sp.length)
+            if (r.last + 1 <= sp.length) {
                 sp.setSpan(StrikethroughSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sp.setSpan(ForegroundColorSpan(0xFF5B6068.toInt()), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
         }
 
         suppress = true
+        editor.recording = false
         editor.setText(sp)
         val c = if (keepCaret) oldCaret.coerceIn(0, sp.length) else sp.length
         editor.setSelection(c)
+        editor.recording = true
         suppress = false
         supdateCount()
         editor.post { repositionStrike() }
@@ -148,18 +159,36 @@ class MainActivity : AppCompatActivity() {
 
     /* ---------------- 写 ---------------- */
 
-    private fun onTyped(ins: String) {
-        val len = editor.text?.length ?: 0
-        val pos = DocText.safePos(editor.selectionStart - ins.length, len)
-        addRev("carve", pos, ins, 0, 0)
-        if (ins.contains('\n')) {
-            suppress = true
-            val s = Clock.stamp()
-            editor.text?.append(s + "\n\u3000\u3000")
-            addRev("stamp", 0, s, 0, 0)
-            editor.setSelection(editor.text?.length ?: 0)
-            suppress = false
+    private fun onInserted(start: Int, ins: String) {
+        val nl = ins.indexOf('\n')
+        if (nl < 0) {
+            addRev("carve", start, ins, 0, 0)
+            supdateCount()
+            editor.post { repositionStrike() }
+            return
         }
+
+        val pre = ins.substring(0, nl)
+        val post = ins.substring(nl + 1)
+        if (pre.isNotEmpty()) addRev("carve", start, pre, 0, 0)
+
+        val stampPos = start + pre.length
+        val s = Clock.stamp()
+        val block = "\n" + s + "\n" + DocText.INDENT
+
+        suppress = true
+        editor.recording = false
+        editor.text?.replace(stampPos, stampPos + 1, block)
+        editor.recording = true
+        suppress = false
+
+        addRev("stamp", stampPos, s, 0, 0)
+        addRev("carve", stampPos + s.length + 2, DocText.INDENT, 0, 0)
+        if (post.isNotEmpty()) addRev("carve", stampPos + s.length + 4, post, 0, 0)
+
+        floor = stampPos + s.length + 4
+        val caret = (floor + post.length).coerceAtMost(editor.text?.length ?: 0)
+        editor.setSelection(caret)
         supdateCount()
         editor.post { repositionStrike() }
     }
@@ -178,10 +207,13 @@ class MainActivity : AppCompatActivity() {
         val len = editor.text?.length ?: 0
         val r = DocText.safeRange(editor.selectionStart, editor.selectionEnd, len)
         if (r == null) { t("先选中要划掉的文字。"); return }
+        if (r.first < floor) { t("这一行已经封存了，不能再划。"); return }
         val (a, b) = r
-        (editor.text as? Spannable)?.setSpan(
-            StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
+        val sp = editor.text as? Spannable
+        if (sp != null) {
+            sp.setSpan(StrikethroughSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sp.setSpan(ForegroundColorSpan(0xFF5B6068.toInt()), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
         addRev("strike", 0, "", a, b)
         supdateCount()
         t("已划掉。原文还在，只是划了道线。")

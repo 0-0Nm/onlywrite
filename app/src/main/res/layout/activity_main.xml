@@ -26,26 +26,28 @@
                 android:textSize="11sp"
                 android:letterSpacing="0.32" />
 
+
+
+            <TextView
+                android:id="@+id/btnMenu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="▪册"
+                android:textColor="#4D525A"
+                android:textSize="11sp"
+                android:letterSpacing="0.2"
+                android:padding="6dp" />
+
             <Space
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
             <TextView
-                android:id="@+id/btnMenu"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="·册"
-                android:textColor="#4D525A"
-                android:textSize="11sp"
-                android:letterSpacing="0.2"
-                android:padding="6dp" />
-
-            <TextView
                 android:id="@+id/btnFont"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="·字"
+                android:text="▪字"
                 android:textColor="#41464D"
                 android:textSize="11sp"
                 android:letterSpacing="0.2"
@@ -55,7 +57,7 @@
                 android:id="@+id/tglTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="·时间"
+                android:text="▪时间"
                 android:textColor="#41464D"
                 android:textSize="11sp"
                 android:letterSpacing="0.2"
@@ -131,7 +133,7 @@
                 android:id="@+id/btnRec"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="·拾音"
+                android:text="▪拾音"
                 android:textColor="#4D525A"
                 android:textSize="11sp"
                 android:letterSpacing="0.28"
