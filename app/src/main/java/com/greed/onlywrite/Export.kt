@@ -90,6 +90,46 @@ object Export {
         return sb.toString()
     }
 
+
+    /** TXT 末尾的注记区：每条带锚文本与原位置 */
+    fun notesTxt(body: String, notes: List<Note>): String {
+        if (notes.isEmpty()) return ""
+        val sb = StringBuilder()
+        sb.append("\n\n\u2500\u2500\u2500\u2500 \u6ce8\u8bb0 \u2500\u2500\u2500\u2500\n")
+        notes.forEachIndexed { i, n ->
+            val a = n.s.coerceIn(0, body.length)
+            val b = n.e.coerceIn(0, body.length)
+            val anchor = if (b > a) body.substring(a, b) else ""
+            sb.append("[").append(i + 1).append("] ")
+                .append(isoTs(n.ts)).append("\n")
+            if (anchor.isNotEmpty()) sb.append("    \u5b9a\u4f4d\uff1a").append(anchor).append("\n")
+            sb.append("    ").append(n.body).append("\n")
+        }
+        return sb.toString()
+    }
+
+    fun notesJson(body: String, notes: List<Note>): String {
+        if (notes.isEmpty()) return "[]"
+        return notes.joinToString(",", "[", "]") { n ->
+            val a = n.s.coerceIn(0, body.length)
+            val b = n.e.coerceIn(0, body.length)
+            val anchor = if (b > a) body.substring(a, b) else ""
+            "{\"s\":" + a + ",\"e\":" + b +
+                ",\"anchor\":\"" + jsonEscape(anchor) + "\"" +
+                ",\"body\":\"" + jsonEscape(n.body) + "\"" +
+                ",\"ts\":" + n.ts + "}"
+        }
+    }
+
+    fun isoTs(ts: Long): String {
+        val f = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.CHINA)
+        return f.format(java.util.Date(ts))
+    }
+
+    /** 完整可导出文本：标题 + 正文 + 注记 */
+    fun fullTxt(title: String, body: String, strikes: String, notes: List<Note>): String =
+        title + "\n\n" + marked(body, strikes) + notesTxt(body, notes)
+
     /** 校验串：第三方用同样算法能复算出同样的 hash */
     fun recordHash(doc: String, seq: Int, parent: String, op: String, payload: String, pos: Int, s: Int, e: Int, ts: Long): String =
         Hash.sha("$doc|$seq|$parent|$op|${Hash.sha(payload)}|$pos|$s|$e|$ts")

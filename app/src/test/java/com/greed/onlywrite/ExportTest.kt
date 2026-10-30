@@ -72,6 +72,34 @@ class ExportTest {
         assertTrue(j.contains("\"archivedAt\":3000"))
     }
 
+    @Test fun notesTxtEmptyWhenNoNotes() {
+        assertEquals("", Export.notesTxt("abc", emptyList()))
+    }
+
+    @Test fun notesTxtContainsAnchorAndBody() {
+        val n = Note(2, 4, "这里写得虚", 1700000000000L)
+        val s = Export.notesTxt("abcdef", listOf(n))
+        assertTrue(s.contains("这里写得虚"))
+        assertTrue(s.contains("定位：cd"))
+        assertTrue(s.contains("[1]"))
+    }
+
+    @Test fun notesJsonIsArray() {
+        val n = Note(0, 2, "x", 1L)
+        val j = Export.notesJson("abc", listOf(n))
+        assertTrue(j.startsWith("["))
+        assertTrue(j.contains("\"anchor\":\"ab\""))
+        assertTrue(j.contains("\"body\":\"x\""))
+    }
+
+    @Test fun fullTxtHasTitleBodyAndNotes() {
+        val n = Note(1, 2, "注", 1L)
+        val s = Export.fullTxt("T", "abc", "", listOf(n))
+        assertTrue(s.startsWith("T\n\nabc"))
+        assertTrue(s.contains("注记"))
+        assertTrue(s.contains("注"))
+    }
+
     @Test fun recordHashIsStable() {
         val a = Export.recordHash("d", 1, "p", "carve", "x", 0, 0, 0, 1L)
         val b = Export.recordHash("d", 1, "p", "carve", "x", 0, 0, 0, 1L)

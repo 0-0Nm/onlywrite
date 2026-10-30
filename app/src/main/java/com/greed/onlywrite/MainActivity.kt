@@ -425,7 +425,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun writeOut(name: String, body: String, strikes: String, chain: String) {
+    private fun writeOut(name: String, body: String, strikes: String, chain: String, notes: List<Note>) {
         val s = getSharedPreferences("ow", MODE_PRIVATE).getString("export_tree", null) ?: return
         runCatching {
             val root = androidx.documentfile.provider.DocumentFile.fromTreeUri(this, android.net.Uri.parse(s)) ?: return
@@ -433,7 +433,7 @@ class MainActivity : AppCompatActivity() {
             val txt = root.findFile(safe + ".txt") ?: root.createFile("text/plain", safe + ".txt")
             txt?.let {
                 contentResolver.openOutputStream(it.uri)?.use { o ->
-                    o.write((name + "\n\n" + Export.marked(body, strikes)).toByteArray(Charsets.UTF_8))
+                    o.write(Export.fullTxt(name, body, strikes, notes).toByteArray(Charsets.UTF_8))
                 }
             }
             val meta = chain
@@ -460,9 +460,19 @@ class MainActivity : AppCompatActivity() {
                 val f = root.findFile(fn) ?: root.createFile("text/plain", fn)
                 if (f != null) {
                     contentResolver.openOutputStream(f.uri)?.use {
-                        it.write((a.name + "\n\n" + Export.marked(a.plain, a.strikes)).toByteArray(Charsets.UTF_8))
+                        it.write(Export.fullTxt(a.name, a.plain, a.strikes, store.notesOf(a.name)).toByteArray(Charsets.UTF_8))
                     }
                     n++
+                }
+                val ns = store.notesOf(a.name)
+                if (ns.isNotEmpty()) {
+                    val nn = a.name.replace(Regex("[^0-9A-Za-z\\u4e00-\\u9fa5]+"), "-") + ".notes.json"
+                    val nf = root.findFile(nn) ?: root.createFile("application/json", nn)
+                    nf?.let {
+                        contentResolver.openOutputStream(it.uri)?.use { o ->
+                            o.write(Export.notesJson(a.plain, ns).toByteArray(Charsets.UTF_8))
+                        }
+                    }
                 }
                 if (a.chain.isNotEmpty()) {
                     val jn = a.name.replace(Regex("[^0-9A-Za-z\u4e00-\u9fa5]+"), "-") + ".chain.json"
@@ -579,7 +589,7 @@ class MainActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         val chain = Export.chainJson(revs, rendered.text, strikes, doc, now)
         store.putArchive(name, now, rendered.text, revs.size, strikes, chain)
-        writeOut(name, rendered.text, strikes, chain)
+        writeOut(name, rendered.text, strikes, chain, store.notesOf(name))
         doc = "doc-" + System.currentTimeMillis()
         getSharedPreferences("ow", MODE_PRIVATE).edit().putString("cur_doc", doc).apply()
         revs.clear()
