@@ -161,6 +161,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // 拾音标记单独着色
+        val markRe = Regex("「寄耳」|「还心」")
+        for (m in markRe.findAll(rendered.text)) {
+            val a = m.range.first
+            val b = m.range.last + 1
+            if (b <= sp.length) sp.setSpan(
+                ForegroundColorSpan(0xFFB08D57.toInt()), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+
         suppress = true
         editor.recording = false
         editor.setText(sp)
@@ -338,17 +348,19 @@ class MainActivity : AppCompatActivity() {
         selectTab(2)
     }
 
-    /** 在光标处刻下标记（寄耳 / 还心），与普通输入等价入链 */
+    /** 在光标处刻下标记，带书名号，与普通输入等价入链 */
     private fun insertMarker(text: String) {
+        val s = "「" + text + "」"
         val len = editor.text?.length ?: 0
         val pos = DocText.safePos(editor.selectionStart, len)
         suppress = true
         editor.recording = false
-        editor.text?.insert(pos, text)
+        editor.text?.insert(pos, s)
         editor.recording = true
         suppress = false
-        addRev("carve", pos, text, 0, 0)
-        editor.setSelection(pos + text.length)
+        addRev("carve", pos, s, 0, 0)
+        rebuild(keepCaret = false)
+        editor.setSelection((pos + s.length).coerceAtMost(editor.text?.length ?: 0))
         supdateCount()
     }
 
