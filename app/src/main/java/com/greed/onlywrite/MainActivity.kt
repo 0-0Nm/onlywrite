@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.TypefaceSpan
 import android.text.style.StrikethroughSpan
 import android.view.View
 import android.widget.LinearLayout
@@ -128,10 +130,15 @@ class MainActivity : AppCompatActivity() {
         floor = rendered.floor
 
         val sp = android.text.SpannableString(rendered.text)
-        if (!showStamps) {
-            for (r in rendered.stamps) {
-                if (r.first >= 0 && r.last + 1 <= sp.length)
-                    sp.setSpan(HiddenStampSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        for (r in rendered.stamps) {
+            if (r.first < 0 || r.last + 1 > sp.length) continue
+            if (!showStamps) {
+                sp.setSpan(HiddenStampSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            } else {
+                // 与网页版一致：小一号、暗灰、等宽
+                sp.setSpan(RelativeSizeSpan(0.68f), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sp.setSpan(ForegroundColorSpan(0xFF5F5C52.toInt()), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sp.setSpan(TypefaceSpan("monospace"), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         for (r in rendered.strikes) {
@@ -188,7 +195,8 @@ class MainActivity : AppCompatActivity() {
 
         floor = stampPos + s.length + 4
         val caret = (floor + post.length).coerceAtMost(editor.text?.length ?: 0)
-        editor.setSelection(caret)
+        rebuild(keepCaret = false)
+        editor.setSelection(caret.coerceAtMost(editor.text?.length ?: 0))
         supdateCount()
         editor.post { repositionStrike() }
     }
