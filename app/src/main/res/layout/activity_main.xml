@@ -142,9 +142,11 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/statusDivider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#1B1E23" />
+            android:background="#1B1E23"
+            android:visibility="gone" />
 
         <ScrollView
             android:id="@+id/statusWrap"

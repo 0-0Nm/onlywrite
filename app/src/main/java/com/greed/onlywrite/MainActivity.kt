@@ -148,6 +148,7 @@ class MainActivity : AppCompatActivity() {
             if (r.first < 0 || r.last + 1 > sp.length) continue
             if (!showStamps) {
                 sp.setSpan(HiddenStampSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                sp.setSpan(ZeroHeightSpan(), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             } else {
                 // 与网页版一致：小一号、暗灰、等宽
                 sp.setSpan(RelativeSizeSpan(0.68f), r.first, r.last + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)

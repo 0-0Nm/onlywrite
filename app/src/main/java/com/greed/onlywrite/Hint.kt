@@ -38,6 +38,7 @@ object Hint {
             return
         }
         val w = wrap(a) ?: return
+        a.findViewById<android.view.View>(R.id.statusDivider)?.visibility = android.view.View.VISIBLE
 
         val f = File(a.filesDir, "font.ttf")
         if (f.exists()) runCatching { t.typeface = Typeface.createFromFile(f) }
