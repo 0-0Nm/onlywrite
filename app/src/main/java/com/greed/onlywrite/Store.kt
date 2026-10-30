@@ -13,7 +13,7 @@ data class Note(val s: Int, val e: Int, val body: String, val ts: Long)
 
 data class AudioRec(val name: String, val ts: Long, val path: String, val size: Long)
 
-data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int, val strikes: String = "")
+data class Archive(val name: String, val ts: Long, val plain: String, val strokes: Int, val strikes: String = "", val chain: String = "")
 
 data class Rev(
     val seq: Int,
@@ -45,7 +45,7 @@ object Clock {
     }
 }
 
-class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 5) {
+class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 6) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -77,6 +77,9 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 5) {
     }
 
     override fun onUpgrade(db: SQLiteDatabase, old: Int, new: Int) {
+        if (old < 6) {
+            runCatching { db.execSQL("ALTER TABLE archives ADD COLUMN chain TEXT") }
+        }
         if (old < 5) {
             runCatching { db.execSQL("ALTER TABLE archives ADD COLUMN strikes TEXT") }
         }
@@ -111,20 +114,20 @@ class Store(ctx: Context) : SQLiteOpenHelper(ctx, "onlywrite.db", null, 5) {
         return out
     }
 
-    fun putArchive(name: String, ts: Long, plain: String, strokes: Int, strikes: String = "") {
+    fun putArchive(name: String, ts: Long, plain: String, strokes: Int, strikes: String = "", chain: String = "") {
         writableDatabase.execSQL(
-            "INSERT OR REPLACE INTO archives(name,ts,plain,strokes,strikes) VALUES(?,?,?,?,?)",
-            arrayOf(name, ts, plain, strokes, strikes)
+            "INSERT OR REPLACE INTO archives(name,ts,plain,strokes,strikes,chain) VALUES(?,?,?,?,?,?)",
+            arrayOf(name, ts, plain, strokes, strikes, chain)
         )
     }
 
     fun allArchives(): List<Archive> {
         val out = ArrayList<Archive>()
         readableDatabase.rawQuery(
-            "SELECT name,ts,plain,strokes,strikes FROM archives ORDER BY ts ASC", null
+            "SELECT name,ts,plain,strokes,strikes,chain FROM archives ORDER BY ts ASC", null
         ).use { c ->
             while (c.moveToNext()) {
-                out.add(Archive(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getInt(3), c.getString(4) ?: ""))
+                out.add(Archive(c.getString(0), c.getLong(1), c.getString(2) ?: "", c.getInt(3), c.getString(4) ?: "", c.getString(5) ?: ""))
             }
         }
         return out

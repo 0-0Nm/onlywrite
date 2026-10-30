@@ -425,7 +425,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun writeOut(name: String, body: String, strikes: String) {
+    private fun writeOut(name: String, body: String, strikes: String, chain: String) {
         val s = getSharedPreferences("ow", MODE_PRIVATE).getString("export_tree", null) ?: return
         runCatching {
             val root = androidx.documentfile.provider.DocumentFile.fromTreeUri(this, android.net.Uri.parse(s)) ?: return
@@ -433,13 +433,11 @@ class MainActivity : AppCompatActivity() {
             val txt = root.findFile(safe + ".txt") ?: root.createFile("text/plain", safe + ".txt")
             txt?.let {
                 contentResolver.openOutputStream(it.uri)?.use { o ->
-                    o.write((name + "\n\n" + marked(body, strikes)).toByteArray(Charsets.UTF_8))
+                    o.write((name + "\n\n" + Export.marked(body, strikes)).toByteArray(Charsets.UTF_8))
                 }
             }
-            val meta = "{\"name\":\"" + name + "\",\"chars\":" +
-                body.replace(Regex("\\s"), "").length +
-                ",\"strikes\":" + strikesJson(body, strikes) + "}"
-            val js = root.findFile(safe + ".json") ?: root.createFile("application/json", safe + ".json")
+            val meta = chain
+            val js = root.findFile(safe + ".chain.json") ?: root.createFile("application/json", safe + ".chain.json")
             js?.let {
                 contentResolver.openOutputStream(it.uri)?.use { o -> o.write(meta.toByteArray(Charsets.UTF_8)) }
             }
@@ -462,56 +460,21 @@ class MainActivity : AppCompatActivity() {
                 val f = root.findFile(fn) ?: root.createFile("text/plain", fn)
                 if (f != null) {
                     contentResolver.openOutputStream(f.uri)?.use {
-                        it.write((a.name + "\n\n" + marked(a.plain, a.strikes)).toByteArray(Charsets.UTF_8))
+                        it.write((a.name + "\n\n" + Export.marked(a.plain, a.strikes)).toByteArray(Charsets.UTF_8))
                     }
                     n++
                 }
+                if (a.chain.isNotEmpty()) {
+                    val jn = a.name.replace(Regex("[^0-9A-Za-z\u4e00-\u9fa5]+"), "-") + ".chain.json"
+                    val jf = root.findFile(jn) ?: root.createFile("application/json", jn)
+                    jf?.let {
+                        contentResolver.openOutputStream(it.uri)?.use { o -> o.write(a.chain.toByteArray(Charsets.UTF_8)) }
+                    }
+                }
             }
-            t("已导出 " + n + " 个 TXT")
+            t("已导出 " + n + " 份（txt + chain.json）")
         } catch (e: Throwable) {
             t("导出失败：" + (e.message ?: "未知"))
-        }
-    }
-
-    /** 导出用：每段划线用 ⟦n⟧ … ⟦n⟧ 包住，n 是本篇内的序号 */
-    private fun marked(body: String, strikes: String): String {
-        if (strikes.isEmpty()) return body
-        val ranges = strikes.split(";").mapNotNull {
-            val p = it.split(":")
-            if (p.size == 2) p[0].toIntOrNull()?.let { a -> p[1].toIntOrNull()?.let { b -> a to b } } else null
-        }.filter { it.second > it.first }.sortedBy { it.first }
-        if (ranges.isEmpty()) return body
-
-        val sb = StringBuilder()
-        var i = 0
-        var idx = 0
-        while (i < body.length) {
-            while (idx < ranges.size && ranges[idx].first < i) idx++
-            val r = if (idx < ranges.size) ranges[idx] else null
-            if (r != null && r.first == i) {
-                val b = r.second.coerceAtMost(body.length)
-                val tag = "\u27e6" + (idx + 1) + "\u27e7"
-                sb.append(tag).append(body, r.first, b).append(tag)
-                i = b
-                idx++
-            } else {
-                sb.append(body[i])
-                i++
-            }
-        }
-        return sb.toString()
-    }
-
-    /** 结构化输出：每段划线的起止与原文，给机器读 */
-    private fun strikesJson(body: String, strikes: String): String {
-        if (strikes.isEmpty()) return "[]"
-        val items = strikes.split(";").mapNotNull {
-            val p = it.split(":")
-            if (p.size == 2) p[0].toIntOrNull()?.let { a -> p[1].toIntOrNull()?.let { b -> a to b } } else null
-        }.filter { it.second > it.first && it.first < body.length }
-        return items.joinToString(",", "[", "]") { (a, b) ->
-            val seg = body.substring(a, b.coerceAtMost(body.length))
-            "{\"s\":" + a + ",\"e\":" + b + ",\"text\":\"" + seg.replace("\\", "\\\\").replace("\"", "\\\"") + "\"}"
         }
     }
 
@@ -613,8 +576,10 @@ class MainActivity : AppCompatActivity() {
         if (rendered.text.trim().isEmpty()) { t("还没有字，没什么可归档的。"); return }
         val strikes = rendered.strikes.joinToString(";") { "" + it.first + ":" + (it.last + 1) }
         val name = Clock.stamp()
-        store.putArchive(name, System.currentTimeMillis(), rendered.text, revs.size, strikes)
-        writeOut(name, rendered.text, strikes)
+        val now = System.currentTimeMillis()
+        val chain = Export.chainJson(revs, rendered.text, strikes, doc, now)
+        store.putArchive(name, now, rendered.text, revs.size, strikes, chain)
+        writeOut(name, rendered.text, strikes, chain)
         doc = "doc-" + System.currentTimeMillis()
         getSharedPreferences("ow", MODE_PRIVATE).edit().putString("cur_doc", doc).apply()
         revs.clear()

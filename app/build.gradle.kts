@@ -20,8 +20,8 @@ android {
         applicationId = "com.greed.onlywrite"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.1.0"
+        versionCode = 3 + ((System.getenv("GITHUB_RUN_NUMBER") ?: "0").toIntOrNull() ?: 0)
+        versionName = "0.1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
 
     buildTypes {
