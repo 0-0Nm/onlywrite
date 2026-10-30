@@ -11,7 +11,7 @@ class ExportTest {
     }
 
     @Test fun singleRange() {
-        assertEquals("a\u27e61\u27ebc\u27e61\u27e7", Export.marked("abc", "1:3"))
+        assertEquals("a\u27e61\u27e7bc\u27e61\u27e7", Export.marked("abc", "1:3"))
     }
 
     @Test fun twoRangesAreNumbered() {
